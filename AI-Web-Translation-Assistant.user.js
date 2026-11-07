@@ -9,10 +9,10 @@
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.2.5
+// @version     1.2.6
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
-// @description 合并版：识别到纯英文网页时自动翻译一次，F9 可随时手动重译；AI 大模型优先、不可用时回退引擎链；「AI 翻译设置」入口用于配置大模型。
+// @description 合并版：自动检测页面语言，非简体中文自动翻译（英文/日文/韩文/德文等，繁体转简体），F9 可随时手动重译；AI 大模型优先、不可用时回退引擎链。
 // @icon       data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAMAAABrrFhUAAAC/VBMVEVVS+tGUus3WepmQ+z+/v5yPewAAAAqYOw4Seni3vxnVO3KyflRPOqop/Xo6fxyeO/W1/q0tvaSl/NtaO6KifFVZexVVf1/f/8AAP95hfCkl/SbovSIefFPUfJPUfNSTfIpY/J6PPNUTPAqYvF5PfJQUfNUTfF5PPG7w/gAf/9NUfApYvBRVPZLSe0pY/V6PPJWTfIpY/J4Oe94PfKAPvxSTvA/P7+qVf////9VTfIAVf//AP/Euvfd4Pt5PfJ/AP9MTMwqY/EqYu6gh/NRUPSHavAA//+AQP0pXe9/f39/QvknX+9ece4yOehmM8yBPfsqX+1mTMx/kvI/X99/H79/P78/P98ZZswfX78ZTMwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADXL5M7AAAA/3RSTlP+/v7///4A/f//////////////////BAIB/////9C0LbOzkdDQU7OS/wKUlDQXNDDPVBRW/28FAwFWAwH//3ACCnAU/3L/Af8YAi4g//8KR4MK/wgIBAgKCAoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACdE8wpAAANQUlEQVR42uWcaXebuhaGN2EItTHBs5tmTpO0SZqmzek897Y99wx3nv//H7kCOzZGG5DQNhYRH3rWarpOeB7p3YC0ATz+mIxGyX//89vVsy9/vTg4OD7eTB0bNR6WwrG7u7d3fvTi5HL/c4IzGk0QWOD+5vFb9sc/rp5dHCxhrwNfTUBKxd75yeW/YwfjUgFvmaWvzy6O57i1M5PiAztuLZyfjOLZXSjgMcO/upixb26sY8zpxz/2YE01nF8yBeN8AWzyPztIs98R/tRc2DthQcgR8OOxd3Ww5syvlH/qYG/fG7/GBDz2vC+bd50/UfDN88a8gMfeHw9M4I8V7I0WBmDO//XYEH5mYPfJ3ADMx98c/iUDUwE/fnw1iT8x8HqyEDAZTQ7SV747z88MnE6md8Ywvf5/MWr8EwMvpvcDkBSAK+P42bGflIGpgAMD+a3TWwFvvWcG8jMDb+IQQPwEdGAiP5sCv4xjAWO+AhjBP6sCwKbBhaH81hGDh4n31VB+djzxJvCSlcANQ/lZGXwJcQI2zORPMgDef4/v6PqPwHH9khXBK0Pn/+w6AEslwDR+VgQgXQJM44+LAKSeA4zjZ4tjHvzv+A6t/0vysyr4GX4zd/yTKghXRvMzAbOLgKH8cAJfNjcM5ocXcGHy+LPrYCLAWP5YwIHJ/ACnTIDJ/EzA8abJ/HC9RgE68DMBaysBWvCzY10CdOFflwBt+NckQB/+9QjQiH8tAnTiX4cArfjXIEAv/voFaMYPzez/puMH0/lrFqAfP5jOD6bzg+n8YDo/mM4PpvNTCdiyGspPJSDaaig/kYCh88BvJj+NAL/nRA3lJ5oBbccZNpMfiBLgOD2/kfwkAvy/MwHtZvLTCHjEBORkQHd+oEpAnAGrgfwUAvz7iYBHiAD9+YEsAVgGGsBPIWAYOngGmsAPZAngM9AIfgoB3ZmAcNhAfgIB1iwBjnM/PQUawg90CVjOQFP4gS4BLAMN5CeIwDwBqQw0h19ZgL+14He6MwEN4gfCBMwz0CR+9Qh8SAlwtuIp0Ch+ZQHpBEwz0Cx+VQF+Z0lA2Dh+5RkQLQmIM9AsflUBvy/zOx2/YfxqAiz/QUZAtNEwfqBNAGUGoAkChll+tkHSLH5QS0CPE0CVgdtPv2n+MMQlgCoDU3rtI8AngCoDDD81A0qOVt4BwUoFYAlgGfCJ+K1BF5lgMkcYdXdKHagIiLcE+WOoXgXi4d9SpL8dj51gVQIsNAHJ4rAyvwUdh+roBKsSgCaAbRL6yvXPgq7j1GRARcAj/BeqZSDh7zmUx3awmhowzPl9ShlI+PsO7dHPxbeBPAFqGQDyACTLFHlTwFYS8Cjv91XPwJTfCokFhK08fhsoNkSyx8BXuf+1YMuhPvBroa0iwEptiFBlYHb/T1wCc8ugrSigIKhKz3+U9wCLK6GN81cWYG0UBfW+r/L983oE2IoCChKQLA5Xf/5fRQQGQQ6/goCiS1Wosv6xiiLYD3L4FWpA4aVKOgOQFkB/GbTz+KsKsPziUZLNwNLZ0ReB7NOATSCg+GYttNS+f7/a+yBbXcBG2SyVygDHDwPiEmjn8VcUUJYAuQzwtyi0F4LtAv7KAspSGlpq3/8nNJC5BNrqAuKzzq5XhZUXh/HHFPZI3CbBb/eLxr+qAD4BvbDiJmHegzr7Qb/TjsJ7CkfU3mY3AIX8VQSws+a2BJ1hdrwiHfZ/gtz7HwUB8WlzGyIfeCVCGSg+f3U9dhm/vID4tP3f+aLPhUIkA1DvYRMISM6bXwxjl/1sEYigCfyyAqYn7nN7FkPLb/MrkQ3glxQwPXF+OZhth/GzomyTUAt+OQGzM+dZWd75IlCSAT34pQTcnjo/25OK/0EqA5rwywi4PXVkQyTR0pXZINGFX0LA/Nz5BCSrwP5AIgPa8IsLWJw8vyGSlDvgJ8YQtOcXFrA4eSQBs5u+SDQDGvGLCkidPZ+A2aMvXwTaoD2/oID06fMJeDQdaGShHM2AVvxiAtKnjyyG3c70odAmoV78QgKWzh8Z5/4MEyKBDGjGLyJgGYBP+of5j/h1Mgs05xcQkB3CMHf9E1kpzWZAO/5yARl8JAEpyLBkcViaIL8HkuuJhABsef5SAdnxRzZEFqWef0gIlzIgSc8aJcX3yML2diuQ5y8TwBdx7pSiolsEZwBV+XfkGyU7rfQksAkEcPhIzFOzHIp/KnVU2h4MU2vgNoEAfvyRBCxtgoX5GZDjr9gnFvZv54BNIAC7jeVDOSzxA1X4ewob4bYMf5EABB9JwFJDFFIEZhmQ4++rtATaMvwFArDxR251lla/kTMPq9R/lUbJuBDaBALwB9mo7AUR5B/Iv/mh1CHC9oJtAgEoPpKAsLRIxlNEUoBSj1CbRAA+/vz+V7Ynkl8Xi+8TZHf0eor9QOoC8pbyorLOcGRdLM6ApAC1FqGWuoAcfKwtJLsFyj8SO53GCcgbfyQBocB1IoKGRSB3LZvfEuRbgbAG0r7sFFhvEcznHwq8HIJ1uElnANZ5GczfzMHeEOF3v6CNZKDGIhDKlQBOQMFunt92nPI+GKRQyGegVdsEyAoo4MfekUK6AbEA96QzULlRMpIb/6yAou1sLAHIsjd2HxvJd/tUvBDcaykJKNzPRxKAbnwgRaDgtTXaS2G7JRmAZQHFDR1DbL5hGz89igxAIN8oGW6D7PgvCSjmR+7y8UYw7GG+XanjLW6UFG6KbHcHtvTwLwko6WjCEpDTEh5SZCCZBWIr/9M/gir4KQGlPW3Yy2Ho7i+2nDGAVe6J2AoHCPJjt7h5u98DqgzUwH8roHT8sTdEcvrg0BU9XflnAgS6ekP0QR83ENWZAZtAQDk+loDcdyKwItBdlQBbXYBIVzuWgHZuC9QAs6Unv6gALAGDP+Wu6jp1ZcBWFyCEj74j1dvKPaKaMmDXJkD9kw6hnvyCAijeZd0hnwJ2bQJ8ireZyTNg1yiA4l3eUMfxF40AyVettnTkFxLg07zP36HMgF2rAJq32UMNx19MANB8140kAzb1ISCA7MNWnQD0eyASEICt9FdcspZ+8bVV9bBtwRUiqC8BkgtjAezINEpyH5PsfHddEgEwrOezdln+HWXv7e8BhQCf7lMG0aobJSvsk0GNCZDIQNAl+3qGqgDCBMQbJIL82w7ZZ+RUBfiUnzOJVt8oyfWLKM8AbIcqetApPbrVMxB0ST8hoyQATwBbDfN9vxgC/RhST+g60CL8lNY9xRngD/CBFLh9wKZOW+wKSJg6p+WqCUATkOyJlX3/o4P3sNVZApMyqCQA/6rXtDGkUq+XSAYC0m+p/SFQEYAnYCDU/4wuJLahdgFKMwBfDh6KCMCLgEgGgkF9EXBLPnOBjmIkNgHwPp9BINAcUlsRdEsE4B8OFV3bQjneizzeE14Go+IJUCagi6/sWNUbPsPyDNiURaCoBLhumQB8Q8QSFdCtmAGVRkmJ+yC3VACeAPFuD7SYvQ8EpgBZGfzuFvOXCECH8IGwgH7VTUKb6l5oUMZfEoFQqQQAvpSwI1IGA4qH0HCnlL9QAH4vFwqXgJw7mm4gZED9i5LvW+X8hQLwDRGZhq9B9Q0SO4gbJat/TPL9dssV4C+OQISv6liKbe87gmv9VXsfp4hByfWvXEDOmytSzf+RygbJvAuU+nDFBOAJkOr0wItAuKZdMIy/cAZE6n0OO9UXh+vhLxCQszIp1+2FX0g7gTb8BQJytgQl3/9Br2X39OEvmgERvrAtxZ9zR9fXhj9fQE4CZFud+pU2yuvjLxAwaGOH7JvQFvp/6WjD70p/9NHS4vtPZPyuYKNknR/DqpVfSACAZt//IuQXEXCn+csFwN3md8Fw/jIBd57fBcP5iwUYwO+C4fyF6wEm8LtgOH/Bw5AZ/C4Yzp8nwBh+FwznxwUYxO+C4fwu7JrN/5AXYBQ/E7BnNL97mBVgGD8TcK7y/ffG87tnywKM47fP4FtKgHH8rvsRTiyT+d0buDSa330K+2AyPxPweXdaBMzkf/g38PYE3n+5q/zuoQfeubnj7/58xgScWGAqv2vfMAGXd37/s+D4lQl4uWsu/8N/ejBiRcBUfvfMewUv4yJgKL974/0LJt6TOmuAVvzuc28CXq0Z0Ir/pzMGD96YXQfMHH/3KYMHzxt/2rOM5D/8ZezFAkZ1lUHN+FkJHCUC2Dw4tQzkP2TgtwIuLfP4kwowFcBmwgvLNP6fPsYBmAmYjCarDoF2/IeTV5O5AG/y+slqnwi0m/8Pn79+5y0EsDSs1ICG/EkBWAhYrQHt5v+Cfy6A/cVozzIl/8+9T15WQKzkm2WZMP8/egv+lADv9djbP6VXoN39D7v+v/MwAfH9gHeyR7xCqNfzn3v4F897lWZeEuCN2aVx/wgIp4Fe43/21PPeffLyBbBJwBSMTo6uifYKbE0E/MyufGc3zxn+KAOcFcBmQfxPRpdvjk6vQfUtMV32fw7Pbn59HmONOVxeQHxnPNX0eX//zYujo9PT6+tG9j89PDw8O/t48/TpnxOcV9N738zxfy0hVtpk+D6nAAAAAElFTkSuQmCC
 // @match       *://*/*
 // @run-at      document-idle
@@ -50,16 +50,18 @@
  *    仅 github.com / gist.github.com 生效，目标语言固定简体中文。
  *
  * ======================= 触发行为（自动 + F9） =======================
- *   1) 自动：页面就绪后探测，判定为纯英文页面时自动翻译一次。
- *      判定条件：可见文本以拉丁字母为主、中日韩字符占比 <2%、英文词数 >=60、
- *      且 html[lang] 未声明为其它语种。最多探测 3 轮（间隔 1.2s，适配 SPA），
- *      每次页面加载只自动执行 1 次；设置面板可关闭。
+ *   1) 自动：页面就绪后自动检测页面主语言，只要不是简体中文就翻译成简体中文
+ *      （英文 / 日文 / 韩文 / 德文 / 法文等一律翻；繁体中文转简体）。
+ *      检测顺序：html[lang] 声明 → 假名/韩文/汉字占比统计 → 繁体特征字。
+ *      文字总量 <250 的页面（多为代码页、图片页）不自动。
+ *      最多探测 3 轮（间隔 1.2s，适配 SPA），每次页面加载只自动执行 1 次；
+ *      设置面板可关闭。
  *   2) 手动：document 捕获阶段 1 个 keydown 监听，ev.key === 'F9'，随时可重译。
- *   无划词、无 MutationObserver、不监听路由变化；非英文页面加载后不改动内容。
+ *   无划词、无 MutationObserver、不监听路由变化；已是简体中文的页面不改动内容。
  *   （DOMContentLoaded 监听用于挂载左下角「AI 设置」按钮和启动自动探测，不读页面文本）
  *   一次 TreeWalker 收集文本节点（共享给两个模块，避免重复遍历），按站点分流：
  *     GitHub/gist -> 词库汉化 + 属性 + 相对时间 + CSS 规则 -> AI 批量翻译剩余
- *                    英文 -> 有批次失败时引擎链兜底。
+ *                    文本 -> 有批次失败时引擎链兜底。
  *     其它站点   -> AI 批量翻译优先；AI 不可用 / 部分失败 / 文本超长时，
  *                    剩余的走引擎链（去重 + 并发 + 译文缓存 + 节点上限）。
  *   执行中 running 锁，连按/长按不重复；焦点在输入框或可编辑区时跳过，不劫持打字。
@@ -120,7 +122,7 @@ var CFG = {
     batchSize: 20,
     maxChars: 200,
     cache: true,
-    autoTranslate: true           /* 识别到纯英文页面时自动翻译一次；F9 仍可手动重译 */
+    autoTranslate: true           /* 非简体中文页面自动翻译（自动检测语种）；F9 仍可手动重译 */
   }
 };
 
@@ -237,7 +239,39 @@ function focusInEditable() {
   var a = document.activeElement;
   return !!(a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName || '')));
 }
-function remainingEnglish(nodes) {
+/* ---- 语种判定：这段文本是否「还不是简体中文」 ---- */
+var RE_HAN = /[\u4e00-\u9fff]/;
+var RE_HAN_G = /[\u4e00-\u9fff]/g;
+var RE_LATIN = /[A-Za-z]/;
+var RE_LATIN_G = /[A-Za-z]/g;
+var RE_KANA_HANGUL = /[\u3040-\u30ff\uac00-\ud7af]/;        /* 日文假名 / 韩文 */
+var RE_OTHER_SCRIPT = /[\u0400-\u04ff\u0600-\u06ff\u0e00-\u0e7f]/;  /* 西里尔 / 阿拉伯 / 泰文 */
+/* 繁体特征字：简体不使用的字形，出现即视为尚未转成简体 */
+var RE_TRAD = /[這個們說時會對來為國學實現發經過還樣麼頁檔設訂單擊選擇載網電軟體與從開關於後裡邊點數據處資訊統機專業務員團圖書東門問間陳張劉楊黃萬]/;
+
+function isSimplifiedChineseText(text) {
+  if (!text) return false;
+  if (RE_KANA_HANGUL.test(text)) return false;          /* 日文 / 韩文 */
+  if (RE_TRAD.test(text)) return false;                 /* 含繁体字形 */
+  var han = (text.match(RE_HAN_G) || []).length;
+  if (!han) return false;
+  var latin = (text.match(RE_LATIN_G) || []).length;
+  return han / (han + latin) >= 0.5;                    /* 以汉字为主 → 已是中文 */
+}
+
+/* 需要翻译：含文字，且不是以简体中文为主 */
+function needsTranslation(text) {
+  if (!text) return false;
+  if (isSimplifiedChineseText(text)) return false;
+  if (RE_KANA_HANGUL.test(text)) return true;
+  if (RE_TRAD.test(text)) return true;
+  if (RE_LATIN.test(text)) return true;
+  if (RE_OTHER_SCRIPT.test(text)) return true;
+  return (text.match(RE_HAN_G) || []).length > 0;        /* 非简体汉字（繁体已在上方命中） */
+}
+
+/* 收集「仍需翻译」的文本节点（AI 没翻到的 / 超长的），交给引擎链 */
+function remainingToTranslate(nodes) {
   var out = [];
   for (var i = 0; i < nodes.length && out.length < CFG.pageNodeLimit; i++) {
     var n = nodes[i];
@@ -245,7 +279,7 @@ function remainingEnglish(nodes) {
     var raw = n.nodeValue || '';
     var t = raw.replace(/\xA0/g, ' ').replace(/\s+/g, ' ').trim();
     if (t.length < 3 || t.length > 300) continue;
-    if (!/[A-Za-z]/.test(t) || /[\u4e00-\u9fff]/.test(t)) continue;
+    if (!needsTranslation(t)) continue;
     out.push(n);
   }
   return out;
@@ -463,7 +497,7 @@ function pageNodes(nodes) {
     var raw = n.nodeValue || '';
     var text = raw.replace(/\xA0/g, ' ').replace(/\s+/g, ' ').trim();
     if (text.length < 3 || text.length > 300) continue;
-    if (!/[A-Za-z]/.test(text) || /[\u4e00-\u9fff]/.test(text)) continue;
+    if (!needsTranslation(text)) continue;
     var key = text.toLowerCase();
     if (!Object.prototype.hasOwnProperty.call(groups, key)) {
       groups[key] = [];
@@ -2405,9 +2439,8 @@ function applyCssRules(root) {
 }
 function aiCandidate(text) {
   if (!aiCfg.enabled || !text) return false;
-  if (text.length < 3 || text.length > (aiCfg.maxChars || 120)) return false;
-  if (!/[A-Za-z]/.test(text)) return false;
-  if (/[\u4e00-\u9fff]/.test(text)) return false;
+  if (text.length < 3 || text.length > (aiCfg.maxChars || 200)) return false;
+  if (!needsTranslation(text)) return false;          /* 已是简体中文 → 不用翻译 */
   if (/^(https?:\/\/|www\.|\/|\.|#|\d+(\.\d+)*$)/.test(text)) return false;
   if (/@|[\w-]+\/[\w-]+/.test(text)) return false;
   if (/\.(js|ts|jsx|tsx|md|json|yml|yaml|py|css|html|svg|png|zip|exe)$/i.test(text)) return false;
@@ -2416,7 +2449,7 @@ function aiCandidate(text) {
   return true;
 }
 function aiPrompt(texts) {
-  return '把下面网页中的英文文案逐条翻译成简体中文。规则：只输出 JSON 字符串数组，长度必须与输入完全一致、顺序一一对应；产品名、专有名词（GitHub、PR、Issue、Actions、Repo、Fork、Commit、Merge、Gist、Workflow 等）、代码标识符与 URL 保持原样不译；用简洁自然的中文；不要解释、不要编号。输入：' + JSON.stringify(texts);
+  return '把下面的网页文案逐条翻译成简体中文。源语言可能是英文、日文、韩文、德文、法文、西班牙文等，按内容自行判断；如果原文本身就是中文则原样返回。规则：只输出 JSON 字符串数组，长度必须与输入完全一致、顺序一一对应；产品名、专有名词（GitHub、PR、Issue、Actions、Repo、Fork、Commit、Merge、Gist、Workflow 等）、代码标识符与 URL 保持原样不译；用简洁自然的中文；不要解释、不要编号。输入：' + JSON.stringify(texts);
 }
 function aiParse(content, n, texts) {
   var s = String(content || '').trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
@@ -2596,7 +2629,7 @@ return { applyDict: applyDict, aiComplete: aiComplete };
 
 
 /* ==================================================================
- * 触发入口：自动探测（纯英文页面）+ F9 手动
+ * 触发入口：自动探测（非简体中文页面）+ F9 手动
  * ================================================================== */
 
 /* ==================================================================
@@ -2650,7 +2683,7 @@ function openAISettings() {
       '<h4>AI 翻译设置（大模型）</h4>' +
       '<div class="hint">仅配置大模型接口，不触发翻译；Key 只保存在本机。</div>' +
       '<label class="field"><input type="checkbox" id="enb" style="width:auto"> 启用 AI 翻译（默认优先使用，不可用时回退引擎链）</label>' +
-      '<label class="field"><input type="checkbox" id="auto" style="width:auto"> 识别到纯英文页面时自动翻译（F9 仍可手动重译）</label>' +
+      '<label class="field"><input type="checkbox" id="auto" style="width:auto"> 非简体中文页面自动翻译（自动检测语种，F9 仍可手动重译）</label>' +
       '<label class="field"><span>接口类型 provider：nvidia / openai / builtin</span><input type="text" id="prov" placeholder="builtin 表示浏览器内置 AI（免 Key）"></label>' +
       '<label class="field"><span>接口地址 baseUrl</span><input type="text" id="url" placeholder="https://.../v1/chat/completions"></label>' +
       '<label class="field"><span>API Key</span><input type="password" id="key" style="width:230px" autocomplete="off"></label>' +
@@ -2764,7 +2797,7 @@ var running = false;
 
 async function runAll(source) {
   running = true;
-  toast(source === 'auto' ? '识别到英文页面，开始自动翻译…' : '开始处理本页…');
+  toast(source === 'auto' ? '检测到非简体中文页面，开始自动翻译…' : '开始处理本页…');
   try {
     var root = document.body;
     if (!root) throw new Error('页面尚未就绪');
@@ -2776,14 +2809,14 @@ async function runAll(source) {
       var needFallback = (CFG.githubFallback === 'always') ||
         (CFG.githubFallback === 'onFailure' && stat.failed > 0);
       var tr = { translated: 0, failed: 0, skipped: true };
-      if (needFallback) tr = await Trans.runPage(remainingEnglish(nodes));
+      if (needFallback) tr = await Trans.runPage(remainingToTranslate(nodes));
       toast('GitHub 汉化：词库 ' + dictHits + ' 处，AI ' + stat.ok + ' 条' +
         (stat.failed ? '（失败 ' + stat.failed + ' 批）' : '') +
         '，引擎兜底 ' + tr.translated + ' 条');
     } else {
       /* AI 优先：先把能交给大模型的文本翻掉，剩下的（AI 不可用 / 失败 / 超长）再走引擎链 */
       var aiStat = await new Promise(function (resolve) { I18n.aiComplete(nodes, resolve); });
-      var rest = remainingEnglish(nodes);
+      var rest = remainingToTranslate(nodes);
       var res = await Trans.runPage(rest);
       toast('整页翻译：AI ' + aiStat.ok + ' 条' +
         (rest.length ? '，引擎兜底 ' + res.translated + ' 条' : '') +
@@ -2797,29 +2830,45 @@ async function runAll(source) {
 }
 
 /* ==================================================================
- * 纯英文页面自动翻译（设置面板可关，默认开）
- * 判定：可见文本以拉丁字母为主、几乎无中日韩文字、英文词数达标，
- *       且 html[lang] 没有声明为其它语种。
+ * 自动翻译：自动检测页面主语言，只要不是简体中文就翻成简体中文
+ * 返回值：'zh-Hans' | 'zh-Hant' | 'ja' | 'ko' | 'other' | 'unknown'
+ *   zh-Hans  → 已是简体中文，不翻
+ *   zh-Hant  → 繁体，转简体
+ *   ja / ko / other → 日文 / 韩文 / 其它语种，翻
  * 约束：每次页面加载最多自动执行 1 次；F9 随时仍可手动重译。
  * ================================================================== */
-function looksEnglishPage() {
+function detectPageLang() {
   var body = document.body;
-  if (!body) return false;
+  if (!body) return 'unknown';
   var t = '';
   try { t = body.innerText || body.textContent || ''; } catch (e) { t = ''; }
-  if (!t) return false;
-  var sample = t.replace(/\s+/g, ' ').slice(0, 20000);
-  if (sample.length < 300) return false;                  /* 内容太少，不判断 */
-  var cjk = (sample.match(/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uac00-\ud7af]/g) || []).length;
-  var latin = (sample.match(/[A-Za-z]/g) || []).length;
-  if (latin < 250) return false;                          /* 英文太少 */
-  if (cjk > latin * 0.02) return false;                    /* 有中日韩文字 → 不是纯英文 */
-  var words = (sample.match(/[A-Za-z][A-Za-z'-]*/g) || []).length;
-  if (words < 60) return false;                            /* 词量不足，多为代码/标题 */
+  if (!t) return 'unknown';
+  var sample = String(t).replace(/\s+/g, ' ').slice(0, 20000);
+
+  var han = (sample.match(RE_HAN_G) || []).length;
+  var kana = (sample.match(/[\u3040-\u30ff]/g) || []).length;
+  var hangul = (sample.match(/[\uac00-\ud7af]/g) || []).length;
+  var latin = (sample.match(RE_LATIN_G) || []).length;
+  var total = han + kana + hangul + latin;
+  if (total < 250) return 'unknown';                 /* 文字太少（多为代码/图片页），不判断 */
+
+  /* html[lang] 对中文、日文、韩文的声明可信度高，优先采信 */
   var lang = '';
   try { lang = String(document.documentElement.getAttribute('lang') || '').toLowerCase(); } catch (e) { lang = ''; }
-  if (lang && !/^en(-|_|$)/.test(lang)) return false;       /* 明确声明为其它语种，不自动 */
-  return true;
+  if (/^zh(-|_|$)/.test(lang)) return /hant|-tw|-hk|-mo/.test(lang) ? 'zh-Hant' : 'zh-Hans';
+  if (/^ja(-|_|$)/.test(lang)) return 'ja';
+  if (/^ko(-|_|$)/.test(lang)) return 'ko';
+
+  /* lang 不可用或与内容不符时，按字符区间统计 */
+  if (kana > 20 && kana > han * 0.15) return 'ja';
+  if (hangul > 20) return 'ko';
+  if (han / total >= 0.25) return RE_TRAD.test(sample) ? 'zh-Hant' : 'zh-Hans';
+  return 'other';                                    /* 拉丁 / 西里尔 / 阿拉伯 / 泰文等 */
+}
+
+function shouldAutoTranslate() {
+  var lang = detectPageLang();
+  return lang === 'other' || lang === 'ja' || lang === 'ko' || lang === 'zh-Hant';
 }
 
 var autoTried = false;      /* 本次页面加载是否已经走过自动翻译 */
@@ -2836,7 +2885,7 @@ function autoTranslateOnce() {
   function probe() {
     if (autoTried || running) return;
     tries++;
-    if (looksEnglishPage()) { autoTranslateOnce(); return; }
+    if (shouldAutoTranslate()) { autoTranslateOnce(); return; }
     if (tries < 3) setTimeout(probe, 1200);   /* SPA 渲染慢的站点多等两轮 */
   }
   if (document.readyState === 'complete' || document.readyState === 'interactive') setTimeout(probe, 800);

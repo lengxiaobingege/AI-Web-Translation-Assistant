@@ -9,10 +9,10 @@
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.2.4
+// @version     1.2.5
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
-// @description 合并版：F9 触发整页翻译，AI 大模型优先、不可用时自动回退引擎链；另提供「AI 翻译设置」入口（篡改猴菜单或左下浮动按钮）用于配置大模型，不触发翻译。
+// @description 合并版：识别到纯英文网页时自动翻译一次，F9 可随时手动重译；AI 大模型优先、不可用时回退引擎链；「AI 翻译设置」入口用于配置大模型。
 // @icon       data:image/png;base64,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
 // @match       *://*/*
 // @run-at      document-idle
@@ -49,13 +49,16 @@
  *    value / aria-label、相对时间中文化、代码/文件名/路径等排除规则。
  *    仅 github.com / gist.github.com 生效，目标语言固定简体中文。
  *
- * ============================ F9 触发行为 ============================
- *   唯一翻译触发：document 捕获阶段仅 1 个 keydown 监听，ev.key === 'F9'。
- *   除 F9 之外脚本不自动翻译、无划词、无 MutationObserver、
- *   不自动扫描页面、无自动轮询或定时触发；页面加载后不改动任何页面内容。
- *   （唯一的 DOMContentLoaded 监听只用于挂载左下角「AI 设置」按钮，不读页面文本）
+ * ======================= 触发行为（自动 + F9） =======================
+ *   1) 自动：页面就绪后探测，判定为纯英文页面时自动翻译一次。
+ *      判定条件：可见文本以拉丁字母为主、中日韩字符占比 <2%、英文词数 >=60、
+ *      且 html[lang] 未声明为其它语种。最多探测 3 轮（间隔 1.2s，适配 SPA），
+ *      每次页面加载只自动执行 1 次；设置面板可关闭。
+ *   2) 手动：document 捕获阶段 1 个 keydown 监听，ev.key === 'F9'，随时可重译。
+ *   无划词、无 MutationObserver、不监听路由变化；非英文页面加载后不改动内容。
+ *   （DOMContentLoaded 监听用于挂载左下角「AI 设置」按钮和启动自动探测，不读页面文本）
  *   一次 TreeWalker 收集文本节点（共享给两个模块，避免重复遍历），按站点分流：
- *     GitHub/gist -> 词库汉化 + 属性 + 相对时间 + CSS 规则 -> AI 批量补译剩余
+ *     GitHub/gist -> 词库汉化 + 属性 + 相对时间 + CSS 规则 -> AI 批量翻译剩余
  *                    英文 -> 有批次失败时引擎链兜底。
  *     其它站点   -> AI 批量翻译优先；AI 不可用 / 部分失败 / 文本超长时，
  *                    剩余的走引擎链（去重 + 并发 + 译文缓存 + 节点上限）。
@@ -116,7 +119,8 @@ var CFG = {
     timeout: 60000,
     batchSize: 20,
     maxChars: 200,
-    cache: true
+    cache: true,
+    autoTranslate: true           /* 识别到纯英文页面时自动翻译一次；F9 仍可手动重译 */
   }
 };
 
@@ -2592,7 +2596,7 @@ return { applyDict: applyDict, aiComplete: aiComplete };
 
 
 /* ==================================================================
- * 唯一触发：F9（全脚本仅此 1 个 addEventListener）
+ * 触发入口：自动探测（纯英文页面）+ F9 手动
  * ================================================================== */
 
 /* ==================================================================
@@ -2646,6 +2650,7 @@ function openAISettings() {
       '<h4>AI 翻译设置（大模型）</h4>' +
       '<div class="hint">仅配置大模型接口，不触发翻译；Key 只保存在本机。</div>' +
       '<label class="field"><input type="checkbox" id="enb" style="width:auto"> 启用 AI 翻译（默认优先使用，不可用时回退引擎链）</label>' +
+      '<label class="field"><input type="checkbox" id="auto" style="width:auto"> 识别到纯英文页面时自动翻译（F9 仍可手动重译）</label>' +
       '<label class="field"><span>接口类型 provider：nvidia / openai / builtin</span><input type="text" id="prov" placeholder="builtin 表示浏览器内置 AI（免 Key）"></label>' +
       '<label class="field"><span>接口地址 baseUrl</span><input type="text" id="url" placeholder="https://.../v1/chat/completions"></label>' +
       '<label class="field"><span>API Key</span><input type="password" id="key" style="width:230px" autocomplete="off"></label>' +
@@ -2668,12 +2673,13 @@ function openAISettings() {
   function fill() {
     var a = CFG.ai;
     f('enb').checked = !!a.enabled;
+    f('auto').checked = a.autoTranslate !== false;
     f('prov').value = a.provider || '';
     f('url').value = a.baseUrl || '';
     f('key').value = a.apiKey || '';
     f('model').value = a.model || '';
     f('batch').value = a.batchSize || 20;
-    f('maxc').value = a.maxChars || 120;
+    f('maxc').value = a.maxChars || 200;
     f('to').value = a.timeout || 60000;
     f('think').checked = !!a.thinkingOff;
     f('cache').checked = !!a.cache;
@@ -2685,12 +2691,13 @@ function openAISettings() {
   function collect() {
     return {
       enabled: f('enb').checked,
+      autoTranslate: f('auto').checked,
       provider: (f('prov').value || 'nvidia').trim(),
       baseUrl: (f('url').value || '').trim(),
       apiKey: f('key').value || '',
       model: (f('model').value || '').trim(),
       batchSize: parseInt(f('batch').value, 10) || 20,
-      maxChars: parseInt(f('maxc').value, 10) || 120,
+      maxChars: parseInt(f('maxc').value, 10) || 200,
       timeout: parseInt(f('to').value, 10) || 60000,
       thinkingOff: f('think').checked,
       cache: f('cache').checked
@@ -2755,9 +2762,9 @@ else document.addEventListener('DOMContentLoaded', mountSettingsButton);
 
 var running = false;
 
-async function runAll() {
+async function runAll(source) {
   running = true;
-  toast('开始处理本页…');
+  toast(source === 'auto' ? '识别到英文页面，开始自动翻译…' : '开始处理本页…');
   try {
     var root = document.body;
     if (!root) throw new Error('页面尚未就绪');
@@ -2788,6 +2795,53 @@ async function runAll() {
     running = false;
   }
 }
+
+/* ==================================================================
+ * 纯英文页面自动翻译（设置面板可关，默认开）
+ * 判定：可见文本以拉丁字母为主、几乎无中日韩文字、英文词数达标，
+ *       且 html[lang] 没有声明为其它语种。
+ * 约束：每次页面加载最多自动执行 1 次；F9 随时仍可手动重译。
+ * ================================================================== */
+function looksEnglishPage() {
+  var body = document.body;
+  if (!body) return false;
+  var t = '';
+  try { t = body.innerText || body.textContent || ''; } catch (e) { t = ''; }
+  if (!t) return false;
+  var sample = t.replace(/\s+/g, ' ').slice(0, 20000);
+  if (sample.length < 300) return false;                  /* 内容太少，不判断 */
+  var cjk = (sample.match(/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uac00-\ud7af]/g) || []).length;
+  var latin = (sample.match(/[A-Za-z]/g) || []).length;
+  if (latin < 250) return false;                          /* 英文太少 */
+  if (cjk > latin * 0.02) return false;                    /* 有中日韩文字 → 不是纯英文 */
+  var words = (sample.match(/[A-Za-z][A-Za-z'-]*/g) || []).length;
+  if (words < 60) return false;                            /* 词量不足，多为代码/标题 */
+  var lang = '';
+  try { lang = String(document.documentElement.getAttribute('lang') || '').toLowerCase(); } catch (e) { lang = ''; }
+  if (lang && !/^en(-|_|$)/.test(lang)) return false;       /* 明确声明为其它语种，不自动 */
+  return true;
+}
+
+var autoTried = false;      /* 本次页面加载是否已经走过自动翻译 */
+function autoTranslateOnce() {
+  if (autoTried) return;
+  autoTried = true;
+  if (!CFG.ai.autoTranslate || running) return;   /* 关掉了，或用户已手动按过 F9 */
+  runAll('auto');
+}
+
+(function scheduleAuto() {
+  if (!CFG.ai.autoTranslate) return;
+  var tries = 0;
+  function probe() {
+    if (autoTried || running) return;
+    tries++;
+    if (looksEnglishPage()) { autoTranslateOnce(); return; }
+    if (tries < 3) setTimeout(probe, 1200);   /* SPA 渲染慢的站点多等两轮 */
+  }
+  if (document.readyState === 'complete' || document.readyState === 'interactive') setTimeout(probe, 800);
+  else document.addEventListener('DOMContentLoaded', function () { setTimeout(probe, 800); });
+})();
 
 document.addEventListener('keydown', function (ev) {
   if (String(ev.key || '').toLowerCase() !== 'f9') return;

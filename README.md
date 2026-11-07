@@ -62,7 +62,7 @@
 
 ## 后续推送
 
-后续计划把本项目及更新推送到 GitHub，目标仓库：
+本仓库就是该脚本的发布地址，脚本文件从这里下载；后续改动也会推送到这里：
 
 <https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.>
 

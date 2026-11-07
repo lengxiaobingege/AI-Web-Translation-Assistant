@@ -2,7 +2,7 @@
 
 一个合并版的 Tampermonkey 用户脚本：**F9 一键翻译当前网页**，同时包含「GitHub 汉化」与「超级翻译助手」两套能力。
 
-当前版本：**1.2.2**
+当前版本：**1.2.3**
 
 ## 功能
 
@@ -81,9 +81,9 @@ https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant.@main/A
 ## 作者
 
 - **lengxiaobingege** —— <https://github.com/lengxiaobingege>
-- **AI 助手** —— 参与合并、重构与文档编写
+- **WorkBuddy** —— AI 编程助手，参与合并、重构与文档编写
 
-脚本头部 `@author` 字段为 `lengxiaobingege & AI 助手`。
+脚本头部 `@author` 字段为 `lengxiaobingege & WorkBuddy`。
 
 ## 二创说明
 

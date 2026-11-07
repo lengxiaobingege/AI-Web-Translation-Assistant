@@ -48,7 +48,8 @@
  * ============================ F9 触发行为 ============================
  *   唯一翻译触发：document 捕获阶段仅 1 个 keydown 监听，ev.key === 'F9'。
  *   除 F9 之外脚本不自动翻译、无划词、无 MutationObserver、
- *   无 DOMContentLoaded 自动扫描、无自动轮询或定时触发；页面加载后不改动任何内容。
+ *   不自动扫描页面、无自动轮询或定时触发；页面加载后不改动任何页面内容。
+ *   （唯一的 DOMContentLoaded 监听只用于挂载左下角「AI 设置」按钮，不读页面文本）
  *   一次 TreeWalker 收集文本节点（共享给两个模块，避免重复遍历），按站点分流：
  *     GitHub/gist -> 词库汉化 + 属性 + 相对时间 + CSS 规则 -> AI 批量补译剩余
  *                    英文 -> 有批次失败时引擎链兜底。
@@ -2719,6 +2720,7 @@ function mountSettingsButton() {
   b.addEventListener('click', openAISettings);
   document.body.appendChild(b);
 }
+loadAISettings();                     /* 先读回本机保存的配置，再挂载入口，F9 才能拿到用户填的 Key */
 if (document.body) mountSettingsButton();
 else document.addEventListener('DOMContentLoaded', mountSettingsButton);
 

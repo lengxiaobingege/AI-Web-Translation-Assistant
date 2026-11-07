@@ -8,7 +8,7 @@
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.
 // @version     2.0.0
-// @description 合并版：仅在按下 F9 时翻译当前网页。GitHub/gist 走词库汉化 + AI 补译（失败时引擎链兜底），其它站点走 Bing/MyMemory/Google 整页翻译。无自动执行、无菜单、无按钮。
+// @description 合并版：翻译仅由 F9 触发；另提供「AI 翻译设置」入口（篡改猴菜单或左下浮动按钮）用于配置大模型，不触发翻译。
 // @icon       data:image/png;base64,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
 // @match       *://*/*
 // @run-at      document-idle
@@ -16,6 +16,7 @@
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getValue
 // @grant       GM_setValue
+// @grant       GM_registerMenuCommand
 // @connect     cn.bing.com
 // @connect     www.bing.com
 // @connect     translate.googleapis.com
@@ -37,18 +38,16 @@
  *    Bing -> MyMemory -> Google 引擎链（含 Bing 鉴权失败强制刷新重试、
  *    上次成功引擎优先）、guessLang 源语言粗判、splitText 长文本分段、
  *    各引擎长度上限。源语言默认 auto，目标语言默认简体中文 zh-CN（CFG 可改）。
- *    原适用页面为通配所有站点；合并后负责 GitHub/gist 以外的整页翻译，
- *    在 GitHub 上仅作为 AI 补译失败时的兜底。
+ *    适用 GitHub/gist 以外的整页翻译；在 GitHub 上仅作为 AI 补译失败时的兜底。
  * B. GitHub 汉化插件（加固版 v1.2.0）
  *    内联 1689 条词库 + CSS 规则、原生 DOM 精确/拆分翻译、input placeholder /
- *    value / aria-label、相对时间中文化、代码/文件名/路径等排除规则；
- *    AI 大模型补译（NVIDIA NIM Nemotron 3.5，关闭思考、批量、译文缓存、
- *    对象/数组双格式解析、候选过滤）。仅 github.com / gist.github.com 生效，
- *    目标语言固定简体中文。GitHub 官方 Octocat 图标保留。
+ *    value / aria-label、相对时间中文化、代码/文件名/路径等排除规则。
+ *    仅 github.com / gist.github.com 生效，目标语言固定简体中文。
+ *    GitHub 官方 Octocat 图标保留。
  *
  * ============================ F9 触发行为 ============================
- *   唯一触发：document 捕获阶段仅 1 个 keydown 监听，ev.key === 'F9'。
- *   全脚本无菜单命令、无按钮、无划词、无 MutationObserver、
+ *   唯一翻译触发：document 捕获阶段仅 1 个 keydown 监听，ev.key === 'F9'。
+ *   除 F9 之外脚本不自动翻译、无划词、无 MutationObserver、
  *   无 DOMContentLoaded 自动扫描、无自动轮询或定时触发；页面加载后不改动任何内容。
  *   一次 TreeWalker 收集文本节点（共享给两个模块，避免重复遍历），按站点分流：
  *     GitHub/gist -> 词库汉化 + 属性 + 相对时间 + CSS 规则 -> AI 批量补译剩余
@@ -56,25 +55,27 @@
  *     其它站点   -> 引擎链整页翻译（去重 + 并发 + 译文缓存 + 节点上限）。
  *   执行中 running 锁，连按/长按不重复；焦点在输入框或可编辑区时跳过，不劫持打字。
  *
- * ==================== 需人工确认的冲突 / 限制 ====================
- *  1) @icon 两版各有一个，只能留一个：现用 GitHub 官方 Octocat；
- *     若要翻译助手的 SVG 图标，请替换头部 @icon 行。
- *  2) 两者都会改写英文文本节点，故按站点分流，且 GitHub 上 AI 成功即不跑引擎链，
- *     避免同一节点被翻两次。想 GitHub 也强制机翻：CFG.githubFallback = 'always'。
- *  3) 原翻译助手是「选中文字 -> F9 -> 弹框显示译文」，按本次要求改为
- *     「F9 翻译整页」，因此 Shadow DOM 弹框、复制/朗读按钮、快捷键自定义
- *     （现固定 F9）与全部设置菜单一并移除。
- *  4) 原两版各有 GM 菜单 / 设置面板 / localStorage 配置，合并后全部移除；
- *     语言、引擎、AI 参数统一在下方 CFG 修改，GM 只存译文缓存且键名统一 ghx2_ 前缀。
- *  5) 整页机翻会对去重后的每个文本节点发一次请求，默认上限 80 个、并发 3；
- *     Bing / MyMemory 是免费公共接口，量大可能限流或超时，可在 CFG 调整。
- *  6) 公开版本已置空 NVIDIA API Key；使用前请在 CFG.ai.apiKey 填入自己的 Key，未配置时 AI 补译会回退到引擎链。
- *     可在 CFG 里替换或置空（置空则 GitHub 页走引擎链兜底）。
- *  7) gitcn.org「翻译描述」接口实测 400，且属于点击触发，已移除
- *     （CFG.descTranslate 保留为 false 占位）。首次调用新域名时篡改猴可能弹跨域授权。
- *  8) F9 可能被浏览器或网页自身占用；已用捕获阶段 + preventDefault 尽量抢占，
- *     若某站点仍冲突需人工确认。
- *  9) 本文件是本地合并结果，未自动安装进篡改猴；替换现有两个脚本前请先备份。
+ * ==================== AI 翻译设置（大模型） ====================
+ *   入口（仅配置，不触发翻译）：
+ *     - 篡改猴菜单命令「AI 翻译设置」
+ *     - 页面左下浮动「AI 设置」按钮
+ *   面板（Shadow DOM，隔离 GitHub 样式）可填：provider / baseUrl / API Key /
+ *   model / batchSize / maxChars / timeout / thinkingOff / cache。
+ *   保存到本机篡改猴存储（键名 ghx2_ai_settings），F9 执行时读取；
+ *   「测试连接」用面板当前值发一次真实请求验证可用性。
+ *   公开版本内置 NVIDIA API Key 已置空，请填入自己的 Key；
+ *   或 provider 填 builtin 使用浏览器内置 AI（免 Key）。
+ *
+ * ==================== 需人工确认的限制 ====================
+ *  1) @icon 只保留 GitHub 官方 Octocat；若想用翻译助手图标，替换头部 @icon 行。
+ *  2) GitHub 上 AI 补译成功即不跑引擎链，避免同一节点被翻两次；
+ *     想强制机翻：CFG.githubFallback = 'always'。
+ *  3) 整页机翻对去重后每个文本节点发一次请求，默认上限 80 个、并发 3；
+ *     Bing / MyMemory 为免费公共接口，量大可能限流，可在 CFG 调整。
+ *  4) F9 可能被浏览器或网页占用；已用捕获阶段 + preventDefault 抢占，
+ *     个别站点仍可能冲突。
+ *  5) 首次调用新 AI 域名时篡改猴可能弹跨域授权；@connect 已预置常用域名，
+ *     新域名需在脚本头部 @connect 补充。
  */
 
 (function () {
@@ -2563,6 +2564,164 @@ return { applyDict: applyDict, aiComplete: aiComplete };
 /* ==================================================================
  * 唯一触发：F9（全脚本仅此 1 个 addEventListener）
  * ================================================================== */
+
+/* ==================================================================
+ * AI 翻译设置面板（仅配置大模型；翻译仍只由 F9 触发）
+ * 入口：篡改猴菜单「AI 翻译设置」/ 页面左下浮动「AI 设置」按钮
+ * 配置保存在本机篡改猴存储，不上传任何页面
+ * ================================================================== */
+var AI_SET_KEY = 'ai_settings';
+
+function loadAISettings() {
+  try {
+    var raw = Store.get(AI_SET_KEY, '');
+    if (!raw) return;
+    var obj = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+    if (obj && typeof obj === 'object') {
+      for (var kk in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, kk) && Object.prototype.hasOwnProperty.call(CFG.ai, kk)) {
+          try { CFG.ai[kk] = obj[kk]; } catch (e) { }
+        }
+      }
+    }
+  } catch (e) { }
+}
+
+function openAISettings() {
+  if (!document.body) return;
+  if (document.getElementById('ghx-ai-settings')) return;
+  var host = document.createElement('div');
+  host.id = 'ghx-ai-settings';
+  host.style.cssText = 'all:initial;position:fixed;left:12px;bottom:12px;z-index:2147483647;';
+  var sr = host.attachShadow({ mode: 'open' });
+  document.body.appendChild(host);
+
+  sr.innerHTML = '' +
+    '<style>' +
+    '.panel{position:relative;width:350px;background:#fff;color:#24292f;font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border:1px solid #d0d7de;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:14px 16px;}' +
+    '.panel h4{margin:0 0 6px;font-size:14px;}' +
+    '.panel .hint{color:#57606a;font-size:12px;margin-bottom:10px;}' +
+    '.field{display:block;margin:8px 0;}' +
+    '.field span{display:block;color:#57606a;font-size:12px;margin-bottom:3px;}' +
+    'input[type=text],input[type=password],input[type=number]{width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #d0d7de;border-radius:6px;font:inherit;}' +
+    'input[type=checkbox]{margin-right:6px;}' +
+    '.row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;color:#57606a;}' +
+    '.row input{flex:0 0 auto;width:90px;}' +
+    '.btns{display:flex;gap:8px;margin-top:12px;}' +
+    'button{padding:6px 12px;border:1px solid #d0d7de;border-radius:6px;background:#f6f8fa;cursor:pointer;font:inherit;}' +
+    'button.primary{background:#1f883d;color:#fff;border-color:#1f883d;}' +
+    '#ghx-msg{margin-top:8px;font-size:12px;color:#57606a;min-height:18px;}' +
+    '</style>' +
+    '<div class="panel">' +
+      '<h4>AI 翻译设置（大模型）</h4>' +
+      '<div class="hint">仅配置大模型接口，不触发翻译；Key 只保存在本机。</div>' +
+      '<label class="field"><input type="checkbox" id="enb" style="width:auto"> 启用 AI 补译（GitHub 词库未命中时）</label>' +
+      '<label class="field"><span>接口类型 provider：nvidia / openai / builtin</span><input type="text" id="prov" placeholder="builtin 表示浏览器内置 AI（免 Key）"></label>' +
+      '<label class="field"><span>接口地址 baseUrl</span><input type="text" id="url" placeholder="https://.../v1/chat/completions"></label>' +
+      '<label class="field"><span>API Key</span><input type="password" id="key" style="width:230px" autocomplete="off"></label>' +
+      '<label class="field"><span>模型名称 model</span><input type="text" id="model" placeholder="例如 nvidia/nemotron-3.5-super-vl-120b-a12b"></label>' +
+      '<div class="row">批量条数<input type="number" id="batch" min="1" max="100"></div>' +
+      '<div class="row">每条最长字符<input type="number" id="maxc" min="10" max="500"></div>' +
+      '<div class="row">超时(ms)<input type="number" id="to" min="1000" max="600000"></div>' +
+      '<label class="field"><input type="checkbox" id="think" style="width:auto"> 推理模型关闭思考（NVIDIA 有意义）</label>' +
+      '<label class="field"><input type="checkbox" id="cache" style="width:auto"> 译文写入缓存（二次访问零请求）</label>' +
+      '<div class="btns">' +
+        '<button class="primary" id="save">保存</button>' +
+        '<button id="test">测试连接</button>' +
+        '<button id="close">关闭</button>' +
+      '</div>' +
+      '<div id="ghx-msg"></div>' +
+    '</div>';
+
+  var f = function (id) { return sr.getElementById(id); };
+
+  function fill() {
+    var a = CFG.ai;
+    f('enb').checked = !!a.enabled;
+    f('prov').value = a.provider || '';
+    f('url').value = a.baseUrl || '';
+    f('key').value = a.apiKey || '';
+    f('model').value = a.model || '';
+    f('batch').value = a.batchSize || 20;
+    f('maxc').value = a.maxChars || 120;
+    f('to').value = a.timeout || 60000;
+    f('think').checked = !!a.thinkingOff;
+    f('cache').checked = !!a.cache;
+  }
+  fill();
+
+  function msg(t) { f('ghx-msg').textContent = t; }
+
+  function collect() {
+    return {
+      enabled: f('enb').checked,
+      provider: (f('prov').value || 'nvidia').trim(),
+      baseUrl: (f('url').value || '').trim(),
+      apiKey: f('key').value || '',
+      model: (f('model').value || '').trim(),
+      batchSize: parseInt(f('batch').value, 10) || 20,
+      maxChars: parseInt(f('maxc').value, 10) || 120,
+      timeout: parseInt(f('to').value, 10) || 60000,
+      thinkingOff: f('think').checked,
+      cache: f('cache').checked
+    };
+  }
+
+  function applySettings() {
+    var o = collect();
+    for (var k in o) {
+      if (Object.prototype.hasOwnProperty.call(o, k) && Object.prototype.hasOwnProperty.call(CFG.ai, k)) {
+        CFG.ai[k] = o[k];
+      }
+    }
+    Store.set(AI_SET_KEY, JSON.stringify(o));
+  }
+
+  f('save').addEventListener('click', function () {
+    applySettings();
+    msg('已保存（当前标签页生效；重启浏览器后配置仍在）');
+  });
+
+  f('test').addEventListener('click', function () {
+    applySettings();
+    if (CFG.ai.provider === 'builtin') {
+      aiRequest(['Watch'], function (err, arr) {
+        if (err) msg('内置 AI 测试失败：' + err);
+        else msg('内置 AI 连接成功：Watch → ' + (arr && arr[0] ? arr[0] : '(未返回译文)'));
+      });
+      return;
+    }
+    if (!CFG.ai.apiKey) { msg('接口为 API 方式，请先填 API Key'); return; }
+    aiRequest(['Watch'], function (err, arr) {
+      if (err) msg('测试失败：' + err);
+      else msg('连接成功：Watch → ' + (arr && arr[0] ? arr[0] : '(未返回译文)'));
+    });
+  });
+
+  f('close').addEventListener('click', function () {
+    if (host.parentNode) host.parentNode.removeChild(host);
+  });
+}
+
+/* 设置入口注册 + 浮动按钮（不触发翻译） */
+try {
+  if (typeof GM_registerMenuCommand === 'function') {
+    GM_registerMenuCommand('AI 翻译设置', openAISettings);
+  }
+} catch (e) { }
+
+function mountSettingsButton() {
+  if (document.getElementById('ghx-settings-btn')) return;
+  var b = document.createElement('button');
+  b.id = 'ghx-settings-btn';
+  b.textContent = '⚙ AI 设置';
+  b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:2147483646;padding:6px 10px;border:1px solid #d0d7de;border-radius:6px;background:#f6f8fa;color:#24292f;font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.16);';
+  b.addEventListener('click', openAISettings);
+  document.body.appendChild(b);
+}
+if (document.body) mountSettingsButton();
+else document.addEventListener('DOMContentLoaded', mountSettingsButton);
+
 var running = false;
 
 async function runAll() {

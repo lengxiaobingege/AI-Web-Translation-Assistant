@@ -1,5 +1,6 @@
 // ==UserScript==
-// 二创说明：本脚本为二次创作，由 lengxiaobingege（https://github.com/lengxiaobingege）编写。
+// 作者（Authors）：lengxiaobingege（https://github.com/lengxiaobingege）与 AI 助手，二者共同编写。
+// 二创说明：本脚本为二次创作，由上述作者合并改编完成。
 //           基于以下两个独立项目的脚本合并改编：
 //             - https://github.com/k1995/github-i18n-plugin（GitHub 汉化部分）
 //             - https://github.com/syhyz1990/translate（超级翻译助手部分）
@@ -7,7 +8,8 @@
 // @name        AI-Web-Translation-Assistant.
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.
-// @version     1.2.1
+// @author      lengxiaobingege & AI 助手
+// @version     1.2.2
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @description 合并版：翻译仅由 F9 触发；另提供「AI 翻译设置」入口（篡改猴菜单或左下浮动按钮）用于配置大模型，不触发翻译。

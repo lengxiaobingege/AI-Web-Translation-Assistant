@@ -9,10 +9,10 @@
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.2.3
+// @version     1.2.4
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
-// @description 合并版：翻译仅由 F9 触发；另提供「AI 翻译设置」入口（篡改猴菜单或左下浮动按钮）用于配置大模型，不触发翻译。
+// @description 合并版：F9 触发整页翻译，AI 大模型优先、不可用时自动回退引擎链；另提供「AI 翻译设置」入口（篡改猴菜单或左下浮动按钮）用于配置大模型，不触发翻译。
 // @icon       data:image/png;base64,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
 // @match       *://*/*
 // @run-at      document-idle
@@ -42,7 +42,8 @@
  *    Bing -> MyMemory -> Google 引擎链（含 Bing 鉴权失败强制刷新重试、
  *    上次成功引擎优先）、guessLang 源语言粗判、splitText 长文本分段、
  *    各引擎长度上限。源语言默认 auto，目标语言默认简体中文 zh-CN（CFG 可改）。
- *    适用 GitHub/gist 以外的整页翻译；在 GitHub 上仅作为 AI 补译失败时的兜底。
+ *    适用 GitHub/gist 以外的整页翻译；只作兜底——AI 不可用、请求失败或文本超出
+ *    AI 处理范围（超长段落）时才会被调用。
  * B. GitHub 汉化插件（加固版 v1.2.0）
  *    内联 1689 条词库 + CSS 规则、原生 DOM 精确/拆分翻译、input placeholder /
  *    value / aria-label、相对时间中文化、代码/文件名/路径等排除规则。
@@ -56,7 +57,8 @@
  *   一次 TreeWalker 收集文本节点（共享给两个模块，避免重复遍历），按站点分流：
  *     GitHub/gist -> 词库汉化 + 属性 + 相对时间 + CSS 规则 -> AI 批量补译剩余
  *                    英文 -> 有批次失败时引擎链兜底。
- *     其它站点   -> 引擎链整页翻译（去重 + 并发 + 译文缓存 + 节点上限）。
+ *     其它站点   -> AI 批量翻译优先；AI 不可用 / 部分失败 / 文本超长时，
+ *                    剩余的走引擎链（去重 + 并发 + 译文缓存 + 节点上限）。
  *   执行中 running 锁，连按/长按不重复；焦点在输入框或可编辑区时跳过，不劫持打字。
  *
  * ==================== AI 翻译设置（大模型） ====================
@@ -113,7 +115,7 @@ var CFG = {
     thinkingOff: true,          /* Nemotron 推理模型关闭思考：4.2s / 105 token */
     timeout: 60000,
     batchSize: 20,
-    maxChars: 120,
+    maxChars: 200,
     cache: true
   }
 };
@@ -2406,11 +2408,11 @@ function aiCandidate(text) {
   if (/@|[\w-]+\/[\w-]+/.test(text)) return false;
   if (/\.(js|ts|jsx|tsx|md|json|yml|yaml|py|css|html|svg|png|zip|exe)$/i.test(text)) return false;
   if (/^(sha|commit|hash|v?\d+\.\d+)/i.test(text)) return false;
-  if (text.split(/\s+/).length > 12) return false;
+  if (text.split(/\s+/).length > 40) return false;   /* 超长段落交引擎链，控制 AI 成本 */
   return true;
 }
 function aiPrompt(texts) {
-  return '把下面 GitHub 界面的英文文案逐条翻译成简体中文。规则：只输出 JSON 字符串数组，长度必须与输入完全一致、顺序一一对应；保留 GitHub、PR、Issue、Actions、Repo、Fork、Commit、Merge、Gist、Workflow 等专有名词与代码标识符不译；用简短的中文 UI 用词；不要解释、不要编号。输入：' + JSON.stringify(texts);
+  return '把下面网页中的英文文案逐条翻译成简体中文。规则：只输出 JSON 字符串数组，长度必须与输入完全一致、顺序一一对应；产品名、专有名词（GitHub、PR、Issue、Actions、Repo、Fork、Commit、Merge、Gist、Workflow 等）、代码标识符与 URL 保持原样不译；用简洁自然的中文；不要解释、不要编号。输入：' + JSON.stringify(texts);
 }
 function aiParse(content, n, texts) {
   var s = String(content || '').trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
@@ -2511,9 +2513,12 @@ function applyDict(nodes, root) {
   return n;
 }
 
-/* ---- F9 调度入口 2：AI 批量补译（词库未命中的英文短文案） ---- */
+/* ---- F9 调度入口 2：AI 批量翻译（默认优先路径；失败/超长的交给引擎链） ---- */
 function aiComplete(nodes, done) {
-  if (!aiCfg.enabled || !aiCfg.apiKey) { done({ ok: 0, failed: 1, reason: 'AI 未启用或未配置 Key' }); return; }
+  if (!aiCfg.enabled) { done({ ok: 0, failed: 1, reason: 'AI 翻译已关闭' }); return; }
+  if (aiCfg.provider !== 'builtin' && !aiCfg.apiKey) {
+    done({ ok: 0, failed: 1, reason: '未配置 API Key' }); return;
+  }
   var groups = {}, texts = [];
   for (var i = 0; i < nodes.length; i++) {
     var nd = nodes[i];
@@ -2525,13 +2530,40 @@ function aiComplete(nodes, done) {
     if (!Object.prototype.hasOwnProperty.call(groups, key)) { groups[key] = []; texts.push(text); }
     groups[key].push({ node: nd, raw: raw, text: text });
   }
-  if (!texts.length) { done({ ok: 0, failed: 0, reason: '无需补译' }); return; }
+  if (!texts.length) { done({ ok: 0, failed: 0, reason: '无需翻译' }); return; }
 
-  var batches = [];
-  for (var s = 0; s < texts.length; s += (aiCfg.batchSize || 20)) {
-    batches.push(texts.slice(s, s + (aiCfg.batchSize || 20)));
+  var ok = 0, failed = 0, lastErr = '';
+
+  /* 把一条译文写回该 key 的全部节点（原文未被改动的才写），返回写入的节点数 */
+  function applyOne(key, t) {
+    var recs = groups[key] || [], hit = 0;
+    for (var q = 0; q < recs.length; q++) {
+      var r = recs[q];
+      if (!r.node.parentNode || r.node.nodeValue !== r.raw) continue;
+      var lead = (r.raw.match(/^\s*/) || [''])[0];
+      var trail = (r.raw.match(/\s*$/) || [''])[0];
+      r.node.nodeValue = lead + t + trail;
+      DONE.add(r.node);
+      hit++;
+    }
+    return hit;
   }
-  var bi = 0, ok = 0, failed = 0, lastErr = '';
+
+  /* 先吃本地缓存：命中的直接写回，不发请求 */
+  var pending = [];
+  for (var c = 0; c < texts.length; c++) {
+    var ck = normKey(texts[c]);
+    if (aiCfg.cache && hasOwn(aiCache, ck)) {
+      if (applyOne(ck, aiCache[ck])) ok++;
+      continue;
+    }
+    pending.push(texts[c]);
+  }
+
+  var size = aiCfg.batchSize || 20, batches = [];
+  for (var s = 0; s < pending.length; s += size) batches.push(pending.slice(s, s + size));
+  if (!batches.length) { done({ ok: ok, failed: 0, reason: '' }); return; }
+  var bi = 0;
 
   function next() {
     if (bi >= batches.length) { aiSaveCache(); done({ ok: ok, failed: failed, reason: lastErr }); return; }
@@ -2539,20 +2571,12 @@ function aiComplete(nodes, done) {
     aiRequest(b, function (err, arr) {
       if (err) {
         failed++; lastErr = err;
-        toast('AI 补译失败：' + err);
+        toast('AI 翻译失败：' + err);
       } else {
         for (var k = 0; k < b.length; k++) {
           var t = arr[k];
           if (!t || t === b[k]) continue;
-          var recs = groups[normKey(b[k])] || [];
-          for (var q = 0; q < recs.length; q++) {
-            var r = recs[q];
-            if (!r.node.parentNode || r.node.nodeValue !== r.raw) continue;
-            var lead = (r.raw.match(/^\s*/) || [''])[0];
-            var trail = (r.raw.match(/\s*$/) || [''])[0];
-            r.node.nodeValue = lead + t + trail;
-            DONE.add(r.node);
-          }
+          if (!applyOne(normKey(b[k]), t)) continue;
           if (aiCfg.cache) { aiCache[normKey(b[k])] = t; DICT[normKey(b[k])] = t; }
           ok++;
         }
@@ -2621,7 +2645,7 @@ function openAISettings() {
     '<div class="panel">' +
       '<h4>AI 翻译设置（大模型）</h4>' +
       '<div class="hint">仅配置大模型接口，不触发翻译；Key 只保存在本机。</div>' +
-      '<label class="field"><input type="checkbox" id="enb" style="width:auto"> 启用 AI 补译（GitHub 词库未命中时）</label>' +
+      '<label class="field"><input type="checkbox" id="enb" style="width:auto"> 启用 AI 翻译（默认优先使用，不可用时回退引擎链）</label>' +
       '<label class="field"><span>接口类型 provider：nvidia / openai / builtin</span><input type="text" id="prov" placeholder="builtin 表示浏览器内置 AI（免 Key）"></label>' +
       '<label class="field"><span>接口地址 baseUrl</span><input type="text" id="url" placeholder="https://.../v1/chat/completions"></label>' +
       '<label class="field"><span>API Key</span><input type="password" id="key" style="width:230px" autocomplete="off"></label>' +
@@ -2750,9 +2774,13 @@ async function runAll() {
         (stat.failed ? '（失败 ' + stat.failed + ' 批）' : '') +
         '，引擎兜底 ' + tr.translated + ' 条');
     } else {
-      var res = await Trans.runPage(nodes);
-      toast('整页翻译：成功 ' + res.translated + ' 条，失败 ' + res.failed + ' 条' +
-        (res.skipped ? '（无待译文本）' : ''));
+      /* AI 优先：先把能交给大模型的文本翻掉，剩下的（AI 不可用 / 失败 / 超长）再走引擎链 */
+      var aiStat = await new Promise(function (resolve) { I18n.aiComplete(nodes, resolve); });
+      var rest = remainingEnglish(nodes);
+      var res = await Trans.runPage(rest);
+      toast('整页翻译：AI ' + aiStat.ok + ' 条' +
+        (rest.length ? '，引擎兜底 ' + res.translated + ' 条' : '') +
+        (!aiStat.ok && !rest.length ? '（无待译文本）' : ''));
     }
   } catch (e) {
     toast('执行失败：' + (e && e.message ? e.message : e));

@@ -9,7 +9,7 @@
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.2.7
+// @version     1.2.8
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @description 合并版：自动检测页面语言，非简体中文自动翻译（英文/日文/韩文/德文等，繁体转简体），F9 可随时手动重译；AI 大模型优先、不可用时回退引擎链。
@@ -104,7 +104,7 @@ var CFG = {
   from: 'auto',                 /* 源语言：auto / en / ja / ko / ru ... */
   to: 'zh-CN',                  /* 目标语言：默认简体中文 */
   engine: 'auto',               /* auto / bing / mymemory / google */
-  pageNodeLimit: 80,            /* 整页机翻最多处理的文本节点数 */
+  pageNodeLimit: 300,           /* 整页机翻最多处理的文本节点数 */
   concurrency: 3,               /* 整页机翻并发数 */
   scanNodeLimit: 2500,          /* 单次 TreeWalker 收集上限 */
   /* B GitHub 汉化 */
@@ -120,7 +120,7 @@ var CFG = {
     thinkingOff: true,          /* Nemotron 推理模型关闭思考：4.2s / 105 token */
     timeout: 60000,
     batchSize: 20,
-    maxChars: 200,
+    maxChars: 600,
     cache: true,
     autoTranslate: true           /* 非简体中文页面自动翻译（自动检测语种）；F9 仍可手动重译 */
   }
@@ -224,7 +224,7 @@ function collectTextNodes(root) {
       var p = node.parentElement;
       if (!p || shouldSkipElement(p)) continue;
       var text = raw.replace(/\xA0/g, ' ').replace(/\s+/g, ' ').trim();
-      if (text.length < 2 || text.length > 300) continue;
+      if (text.length < 2 || text.length > 2000) continue;   /* 长段落放行，由 AI / 引擎分段处理 */
       out.push(node);
     }
   } catch (e) { console.error('[ghx] collect error', e); }
@@ -278,7 +278,7 @@ function remainingToTranslate(nodes) {
     if (!n || !n.parentNode || DONE.has(n)) continue;
     var raw = n.nodeValue || '';
     var t = raw.replace(/\xA0/g, ' ').replace(/\s+/g, ' ').trim();
-    if (t.length < 3 || t.length > 300) continue;
+    if (t.length < 3 || t.length > 2000) continue;   /* 超长交引擎 splitText 分段 */
     if (!needsTranslation(t)) continue;
     out.push(n);
   }
@@ -496,7 +496,7 @@ function pageNodes(nodes) {
     if (!n || !n.parentNode || DONE.has(n)) continue;
     var raw = n.nodeValue || '';
     var text = raw.replace(/\xA0/g, ' ').replace(/\s+/g, ' ').trim();
-    if (text.length < 3 || text.length > 300) continue;
+    if (text.length < 3 || text.length > 2000) continue;   /* 超长交引擎 splitText 分段 */
     if (!needsTranslation(text)) continue;
     var key = text.toLowerCase();
     if (!Object.prototype.hasOwnProperty.call(groups, key)) {
@@ -570,7 +570,7 @@ return { translateText: translateText, runPage: runPage };
  * ================================================================== */
 var I18n = (function () {
 var aiCfg = CFG.ai;                 /* 别名：保留原有 aiCandidate / aiRequest 逻辑 */
-var AI_CACHE_KEY = 'ai_cache';
+var AI_CACHE_KEY = 'ai_cache_v2';
 function gmGet(k, d) { return Store.get(k, d); }
 function gmSet(k, v) { return Store.set(k, v); }
 var aiCache = {};
@@ -2439,13 +2439,13 @@ function applyCssRules(root) {
 }
 function aiCandidate(text) {
   if (!aiCfg.enabled || !text) return false;
-  if (text.length < 3 || text.length > (aiCfg.maxChars || 200)) return false;
+  if (text.length < 3 || text.length > (aiCfg.maxChars || 600)) return false;
   if (!needsTranslation(text)) return false;          /* 已是简体中文 → 不用翻译 */
   if (/^(https?:\/\/|www\.|\/|\.|#|\d+(\.\d+)*$)/.test(text)) return false;
   if (/@|[\w-]+\/[\w-]+/.test(text)) return false;
   if (/\.(js|ts|jsx|tsx|md|json|yml|yaml|py|css|html|svg|png|zip|exe)$/i.test(text)) return false;
   if (/^(sha|commit|hash|v?\d+\.\d+)/i.test(text)) return false;
-  if (text.split(/\s+/).length > 40) return false;   /* 超长段落交引擎链，控制 AI 成本 */
+  if (text.split(/\s+/).length > 150) return false;  /* 超长段落才交引擎链，控制 AI 成本 */
   /* 纯虚词片段（被内联标签切碎的 the / and / for 等）单独翻出来只会突兀，跳过 */
   var lw = text.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean);
   if (lw.length && lw.length <= 2 && lw.every(function (w) {
@@ -2470,6 +2470,7 @@ function aiPrompt(texts) {
     '- 按钮、菜单、标签等界面短词：保持简短（一般 2~8 个字），例如 "Notifications" 译成「通知」，"Sign in" 译成「登录」。\n' +
     '- 完整句子：译成通顺完整的中文句子，例如 "Your session has expired. Please sign in again." 译成「你的会话已过期，请重新登录。」。\n' +
     '- 若某条是被链接、加粗等内联元素切断的句子片段：结合同批其他条目和上下文，译出该片段最自然的中文，不要逐词直译。\n' +
+    '- 常见界面词按中文互联网惯例：Settings→设置、Profile→个人资料、Dashboard→仪表盘、Sign out→退出登录、Notifications→通知、Explore→探索。\n' +
     '- 产品名、专有名词（GitHub、PR、Issue、Repo、Fork 等）、代码标识符、URL 保持原样不译。\n' +
     '只输出 JSON 字符串数组，长度与输入完全一致、顺序一一对应，不要解释、不要编号。输入：' + JSON.stringify(texts);
 }
@@ -2734,7 +2735,7 @@ function openAISettings() {
     f('key').value = a.apiKey || '';
     f('model').value = a.model || '';
     f('batch').value = a.batchSize || 20;
-    f('maxc').value = a.maxChars || 200;
+    f('maxc').value = a.maxChars || 600;
     f('to').value = a.timeout || 60000;
     f('think').checked = !!a.thinkingOff;
     f('cache').checked = !!a.cache;
@@ -2752,7 +2753,7 @@ function openAISettings() {
       apiKey: f('key').value || '',
       model: (f('model').value || '').trim(),
       batchSize: parseInt(f('batch').value, 10) || 20,
-      maxChars: parseInt(f('maxc').value, 10) || 200,
+      maxChars: parseInt(f('maxc').value, 10) || 600,
       timeout: parseInt(f('to').value, 10) || 60000,
       thinkingOff: f('think').checked,
       cache: f('cache').checked

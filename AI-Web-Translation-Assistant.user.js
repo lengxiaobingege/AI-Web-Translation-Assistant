@@ -9,7 +9,7 @@
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.2.6
+// @version     1.2.7
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @description 合并版：自动检测页面语言，非简体中文自动翻译（英文/日文/韩文/德文等，繁体转简体），F9 可随时手动重译；AI 大模型优先、不可用时回退引擎链。
@@ -2446,10 +2446,32 @@ function aiCandidate(text) {
   if (/\.(js|ts|jsx|tsx|md|json|yml|yaml|py|css|html|svg|png|zip|exe)$/i.test(text)) return false;
   if (/^(sha|commit|hash|v?\d+\.\d+)/i.test(text)) return false;
   if (text.split(/\s+/).length > 40) return false;   /* 超长段落交引擎链，控制 AI 成本 */
+  /* 纯虚词片段（被内联标签切碎的 the / and / for 等）单独翻出来只会突兀，跳过 */
+  var lw = text.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean);
+  if (lw.length && lw.length <= 2 && lw.every(function (w) {
+    return /^(the|a|an|and|or|of|to|in|on|for|with|is|are|was|were|be|been|at|by|from|as|that|this|it|its|not|but|if|you|your|we|our|will|can|has|have|had|do|does|did)$/.test(w);
+  })) return false;
   return true;
 }
 function aiPrompt(texts) {
-  return '把下面的网页文案逐条翻译成简体中文。源语言可能是英文、日文、韩文、德文、法文、西班牙文等，按内容自行判断；如果原文本身就是中文则原样返回。规则：只输出 JSON 字符串数组，长度必须与输入完全一致、顺序一一对应；产品名、专有名词（GitHub、PR、Issue、Actions、Repo、Fork、Commit、Merge、Gist、Workflow 等）、代码标识符与 URL 保持原样不译；用简洁自然的中文；不要解释、不要编号。输入：' + JSON.stringify(texts);
+  /* 页面上下文：让模型知道在翻译哪个站点，按钮/正文风格才不会跑偏 */
+  var ctx = '';
+  try {
+    var host = (typeof location !== 'undefined' && location.hostname) || '';
+    var title = (typeof document !== 'undefined' && document.title) || '';
+    if (host || title) {
+      ctx = '页面信息：' + (title ? '标题「' + String(title).slice(0, 80) + '」' : '') +
+        (host ? '（站点：' + host + '）' : '') + '\n';
+    }
+  } catch (e) { ctx = ''; }
+  return ctx +
+    '把下面的 JSON 数组里的网页文案逐条翻译成简体中文，像中文网站的原生文案一样自然。源语言可能是英、日、韩、德、法、西等，按内容自行判断；原文已是中文则原样返回。\n' +
+    '风格要求（最高优先级）：译文要地道流畅，符合中文表达习惯，允许调整语序，杜绝逐词直译和翻译腔。\n' +
+    '- 按钮、菜单、标签等界面短词：保持简短（一般 2~8 个字），例如 "Notifications" 译成「通知」，"Sign in" 译成「登录」。\n' +
+    '- 完整句子：译成通顺完整的中文句子，例如 "Your session has expired. Please sign in again." 译成「你的会话已过期，请重新登录。」。\n' +
+    '- 若某条是被链接、加粗等内联元素切断的句子片段：结合同批其他条目和上下文，译出该片段最自然的中文，不要逐词直译。\n' +
+    '- 产品名、专有名词（GitHub、PR、Issue、Repo、Fork 等）、代码标识符、URL 保持原样不译。\n' +
+    '只输出 JSON 字符串数组，长度与输入完全一致、顺序一一对应，不要解释、不要编号。输入：' + JSON.stringify(texts);
 }
 function aiParse(content, n, texts) {
   var s = String(content || '').trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
@@ -2496,9 +2518,9 @@ function aiRequest(texts, cb) {
   if (aiCfg.provider === 'builtin') { aiBuiltin(texts, cb); return; }
   if (!aiCfg.apiKey) { cb('未配置 API Key（或把 CFG.ai.provider 设为 builtin）'); return; }
   var payload = {
-    model: aiCfg.model, temperature: 0, stream: false,
+    model: aiCfg.model, temperature: 0.2, stream: false,
     messages: [
-      { role: 'system', content: '你是专业的软件界面本地化翻译器，严格按用户要求输出 JSON。' },
+      { role: 'system', content: '你是资深的网页本地化译者。译文以自然、地道、符合简体中文表达习惯为最高标准，像中文网站的原生文案；严格按用户要求只输出 JSON 字符串数组。' },
       { role: 'user', content: aiPrompt(texts) }
     ]
   };

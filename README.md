@@ -2,7 +2,7 @@
 
 一个合并版的 Tampermonkey 用户脚本：**F9 一键翻译当前网页**，同时包含「GitHub 汉化」与「超级翻译助手」两套能力。
 
-当前版本：**1.2.0**
+当前版本：**1.2.1**
 
 ## 功能
 
@@ -46,8 +46,28 @@
 ## 安装
 
 1. 浏览器装好 Tampermonkey（篡改猴）。
-2. 把 `AI-Web-Translation-Assistant.user.js` 拖入浏览器安装；或在篡改猴「新建脚本」里粘贴代码。
+2. 把 `AI-Web-Translation-Assistant.user.js` 拖入浏览器安装；或在篡改猴「新建脚本」里粘贴代码；或直接打开下面的 raw 地址，篡改猴会自动弹出安装页。
 3. 打开任意网页，按 F9 翻译；GitHub 页面先在设置里填好 AI Key。
+
+安装地址（raw）：
+
+```text
+https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
+```
+
+## 更新
+
+脚本头部已内置 `@updateURL` / `@downloadURL`，篡改猴会按该地址检查新版本，正常情况无需手动操作。
+
+手动安装的脚本若不自动更新，在篡改猴里打开本脚本 →「设置」标签页，把上一步的 raw 地址分别填进 **更新地址（Update URL）** 和 **下载地址（Download URL）**，保存后点「检查更新」。
+
+想立刻升到最新版，也可以直接重新打开该 raw 地址安装一次，脚本列表里的版本号会随之变化。
+
+国内直连 `raw.githubusercontent.com` 不稳定时，可改用 jsDelivr 镜像（内容相同，更新有几小时缓存延迟）：
+
+```text
+https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant.@main/AI-Web-Translation-Assistant.user.js
+```
 
 ## 来源
 

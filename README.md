@@ -330,21 +330,23 @@ node tools/merge_contrib.js --force   # 需要覆盖同名条目时用（改错�
 | **浏览器扩展** | 不想装脚本管理器的人 | 无。Chrome、Edge 都能装 |
 | 用户脚本 | 已经有脚本管理器的人 | 篡改猴 / 脚本猫 / 暴力猴等，任选一个 |
 
-### 方式一：浏览器扩展（不用篡改猴）
+### 方式一：浏览器扩展（不用脚本管理器）
 
-1. 下载扩展包（约 88 KB）：
-   [`dist/ai-web-translation-ext-1.4.11.zip`](dist/ai-web-translation-ext-1.4.11.zip)
-   国内直连 GitHub 不稳时用加速地址：
-   ```text
-   https://gh-proxy.com/https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/dist/ai-web-translation-ext-1.4.11.zip
-   ```
-2. 解压到**固定目录**（不要放下载目录里随手删，删了扩展就失效）。
-3. 打开 `chrome://extensions`（Edge 是 `edge://extensions`），右上角开启**开发者模式**。
-4. 点**加载已解压的扩展程序**，选中解压后的文件夹（能看到 `manifest.json` 的那一层）。
-5. 工具栏点图标即是菜单，页面里按 F9 翻译。
+本仓库**只存源码，不放打包好的扩展包**（二进制进仓库既没法 diff，每次发版还得多推一份）。扩展包用一条命令在本地生成：
 
-> 扩展尚未上架商店，所以要走上面这四步。包里的 `README.txt` 写了同样的步骤，方便随包转发给别人。
-> 如果浏览器提示「无法加载扩展程序」，多半是下载后被解压工具套了两层文件夹——选中真正含 `manifest.json` 的那一层即可。
+```bash
+npm run build:ext     # 输出 dist/extension/（已解压）与 dist/ai-web-translation-ext-<版本>.zip
+```
+
+装法：
+
+1. 解压 `dist/extension/` 到**固定目录**（不要放下载目录里随手删，删了扩展就失效）。
+2. 打开 `chrome://extensions`（Edge 是 `edge://extensions`），右上角开启**开发者模式**。
+3. 点**加载已解压的扩展程序**，选中解压后的文件夹（能看到 `manifest.json` 的那一层）。
+4. 工具栏点图标即是菜单，页面里按 F9 翻译。
+
+> 不想自己构建的话，把 `dist/` 里那个 zip 发给别人解压同样能用；包里的 `README.txt` 写了上面这几步。
+> 如果浏览器提示「无法加载扩展程序」，多半是解压时套了两层文件夹——选中真正含 `manifest.json` 的那一层即可。
 
 ### 方式二：用户脚本（任选脚本管理器，不绑定篡改猴）
 

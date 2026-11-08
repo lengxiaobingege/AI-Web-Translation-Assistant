@@ -57,10 +57,19 @@ if (process.argv.includes('--shot')) {
     'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
   ].find(p => fs.existsSync(p));
   if (!chrome) { console.log('未找到 Chrome/Edge，跳过截图'); process.exit(0); }
+  /* 必须给独立 user-data-dir：否则本机已有 Chrome 在跑时，新进程会把请求转给它并立刻退出，
+     --screenshot 静默失效（文件不更新）。用临时目录强制起新实例。 */
+  const tmpProfile = path.join(require('os').tmpdir(), 'ghx-shot-' + process.pid);
   [['preview_panel_light', 'panel_light.png'], ['preview_panel_dark', 'panel_dark.png']].forEach(([h, png]) => {
-    execFileSync(chrome, ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=1',
-      '--window-size=620,1120', `--screenshot=${path.join(__dirname, png)}`,
-      'file:///' + path.join(__dirname, h + '.html').replace(/\\/g, '/')], { stdio: 'ignore' });
-    console.log('已截图：tools/' + png);
+    const out = path.join(__dirname, png);
+    try { fs.unlinkSync(out); } catch (e) { }        // 先删旧图，避免把上次的图当成本次结果
+    try {
+      execFileSync(chrome, ['--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=1',
+        '--user-data-dir=' + tmpProfile,
+        '--window-size=620,1120', `--screenshot=${out}`,
+        'file:///' + path.join(__dirname, h + '.html').replace(/\\/g, '/')], { stdio: 'ignore' });
+    } catch (e) { /* 落到下面的存在性检查 */ }
+    if (fs.existsSync(out)) console.log('已截图：tools/' + png + '（' + fs.statSync(out).size + ' 字节）');
+    else console.log('截图未生成：' + png + '（Chrome 被环境策略拦截时会静默失败，HTML 预览仍可用）');
   });
 }

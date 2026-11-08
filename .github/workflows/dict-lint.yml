@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   lint:
-    name: 校验 dict/github.zh-CN.json
+    name: 校验 dict/zh-CN.json
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

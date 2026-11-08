@@ -16,9 +16,18 @@ __pycache__/
 
 # 开发用截图 / 抓取中间文件
 tools/panel_*.png
-tools/_*.png
-tools/_*.json
+tools/_*
 tools/preview_panel_*.html
+
+# 本地存档：旧版本快照、第三方脚本备份、早期一次性工具（都不入库）
+篡改猴脚本备份_*/
+当前脚本_*.user.js
+超级翻译助手_*.user.js
+GitHub汉化*.user.js
+icon@512.png
+tools/build_github_i18n.py
+tools/replace_github_i18n.py
+tools/tampermonkey_dump.py
 
 # 系统垃圾
 .DS_Store

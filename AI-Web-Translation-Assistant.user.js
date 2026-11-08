@@ -9,7 +9,7 @@
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.3.0
+// @version     1.3.1
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @description 合并版：自动检测页面语言，非简体中文自动翻译（英文/日文/韩文/德文等，繁体转简体），F9 可随时手动重译；AI 大模型优先、不可用时回退引擎链。
@@ -58,7 +58,8 @@
  *      设置面板可关闭。
  *   2) 手动：document 捕获阶段 1 个 keydown 监听，ev.key === 'F9'，随时可重译。
  *   无划词、无 MutationObserver、不监听路由变化；已是简体中文的页面不改动内容。
- *   （DOMContentLoaded 监听用于挂载左下角「AI 设置」按钮和启动自动探测，不读页面文本）
+ *   （DOMContentLoaded 监听只用于启动自动探测，不读页面文本）
+ *   设置入口只在篡改猴菜单里（「AI 翻译设置」），页面内不注入任何常驻按钮。
  *   一次 TreeWalker 收集文本节点（共享给两个模块，避免重复遍历），按站点分流：
  *     GitHub/gist -> 词库汉化 + 属性 + 相对时间 + CSS 规则 -> AI 批量翻译剩余
  *                    文本 -> 有批次失败时引擎链兜底。
@@ -67,9 +68,8 @@
  *   执行中 running 锁，连按/长按不重复；焦点在输入框或可编辑区时跳过，不劫持打字。
  *
  * ==================== AI 翻译设置（大模型） ====================
- *   入口（仅配置，不触发翻译）：
- *     - 篡改猴菜单命令「AI 翻译设置」
- *     - 页面左下浮动「AI 设置」按钮
+ *   入口（仅配置，不触发翻译）：篡改猴菜单命令「AI 翻译设置」。
+ *   页面内不注入任何按钮/悬浮元素，避免在每网站上遮挡页面内容。
  *   面板（Shadow DOM，隔离 GitHub 样式）为居中卡片 + 遮罩，按「运行方式 / 接口 /
  *   参数」三段分组，开关项用拨动开关；关闭方式：× / Esc / 点遮罩。
  *   可填：provider / baseUrl / API Key（可点「显示」查看）/ model /
@@ -2685,7 +2685,7 @@ return { applyDict: applyDict, aiComplete: aiComplete, resetDict: resetDict };
 
 /* ==================================================================
  * AI 翻译设置面板（仅配置大模型；翻译仍只由 F9 触发）
- * 入口：篡改猴菜单「AI 翻译设置」/ 页面左下浮动「AI 设置」按钮
+ * 入口：篡改猴菜单「AI 翻译设置」（页面内不注入按钮）
  * 配置保存在本机篡改猴存储，不上传任何页面
  * ================================================================== */
 var AI_SET_KEY = 'ai_settings';
@@ -2955,47 +2955,15 @@ function openAISettings() {
   try { f('key').focus(); } catch (e) { }
 }
 
-/* 设置入口注册 + 浮动按钮（不触发翻译） */
+/* 设置入口：只注册篡改猴菜单项，不向页面注入任何常驻元素
+ * （脚本 @match 覆盖所有站点，浮动按钮会在每个网站挡住左下角内容） */
 try {
   if (typeof GM_registerMenuCommand === 'function') {
     GM_registerMenuCommand('AI 翻译设置', openAISettings);
   }
 } catch (e) { }
 
-function mountSettingsButton() {
-  if (document.getElementById('ghx-settings-btn')) return;
-  if (!document.getElementById('ghx-settings-css')) {
-    var st = document.createElement('style');
-    st.id = 'ghx-settings-css';
-    st.textContent =
-      '#ghx-settings-btn{position:fixed!important;left:16px!important;bottom:16px!important;z-index:2147483646!important;' +
-      'display:inline-flex!important;align-items:center!important;gap:6px!important;height:32px!important;padding:0 12px 0 10px!important;margin:0!important;' +
-      'border:1px solid #d0d7de!important;border-radius:999px!important;background:#fff!important;color:#24292f!important;' +
-      'font:500 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif!important;' +
-      'letter-spacing:.2px!important;cursor:pointer!important;box-shadow:0 2px 10px rgba(0,0,0,.12)!important;' +
-      'opacity:.72!important;transition:opacity .18s,box-shadow .18s,transform .18s!important;}' +
-      '#ghx-settings-btn:hover{opacity:1!important;box-shadow:0 6px 18px rgba(0,0,0,.18)!important;transform:translateY(-1px)!important;}' +
-      '#ghx-settings-btn:active{transform:translateY(0)!important;}' +
-      '#ghx-settings-btn svg{flex:0 0 auto!important;display:block!important;width:13px!important;height:13px!important;}' +
-      '@media (prefers-color-scheme:dark){#ghx-settings-btn{background:#21262d!important;color:#e6edf3!important;border-color:#3d444d!important;' +
-      'box-shadow:0 2px 10px rgba(0,0,0,.4)!important;}}';
-    (document.head || document.documentElement).appendChild(st);
-  }
-  var b = document.createElement('button');
-  b.id = 'ghx-settings-btn';
-  b.type = 'button';
-  b.title = 'AI 翻译设置';
-  b.innerHTML =
-    '<svg viewBox="0 0 16 16" aria-hidden="true">' +
-    '<path d="M8 5.6a2.4 2.4 0 100 4.8 2.4 2.4 0 000-4.8z" stroke="currentColor" stroke-width="1.4" fill="none"/>' +
-    '<path d="M8 1.4l.9 1.7 1.9-.4.5 1.9 1.8.8-.9 1.7 1.1 1.6-1.5 1.2.2 1.9-1.9.4-.8 1.8-1.6-.9-1.6.9-.8-1.8-1.9-.4.2-1.9L1.4 8.7l1.1-1.6-.9-1.7 1.8-.8.5-1.9 1.9.4L8 1.4z" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linejoin="round" transform="translate(0 -.4) scale(1 .98)"/>' +
-    '</svg><span>AI 设置</span>';
-  b.addEventListener('click', openAISettings);
-  document.body.appendChild(b);
-}
-loadAISettings();                     /* 先读回本机保存的配置，再挂载入口，F9 才能拿到用户填的 Key */
-if (document.body) mountSettingsButton();
-else document.addEventListener('DOMContentLoaded', mountSettingsButton);
+loadAISettings();                     /* 启动时读回本机保存的配置，F9 才能拿到用户填的 Key */
 
 var running = false;
 

@@ -12,6 +12,14 @@ const vm = require('vm');
 const SRC = fs.readFileSync(path.join(__dirname, '..', 'AI-Web-Translation-Assistant.user.js'), 'utf8');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+/* GHX_TARGET=ext 时改跑扩展产物：内容脚本 + chrome.* 仿真，
+   用来确认「同一份逻辑在扩展环境里行为不变」，而不只是油猴里能跑。 */
+const EXT = process.env.GHX_TARGET === 'ext' || process.argv.includes('--ext');
+const EXT_SRC = EXT
+  ? fs.readFileSync(path.join(__dirname, '..', 'dist', 'extension', 'content.js'), 'utf8')
+  : null;
+const EXT_MENUS = ['AI 翻译设置', '立即更新词库', '上传词库增量到 GitHub', '提交词库 Issue', '关闭翻译（恢复原文）'];
+
 function mockEl(tag) {
   const el = {
     tagName: tag || 'DIV',
@@ -35,7 +43,7 @@ function mockEl(tag) {
   return el;
 }
 
-async function run({ aiMode, texts, settings, host, lang, pageText, manual = true, presses = 1, snapshots = null, dictMode = 'off', waitDict = false, extraDict = null, contrib = null, contribHits = null, pushPerm = true, ghDirectFail = false, ghStatus = 0 }) {
+async function run({ aiMode, texts, settings, host, lang, pageText, manual = true, presses = 1, snapshots = null, dictMode = 'off', waitDict = false, extraDict = null, contrib = null, contribHits = null, pushPerm = true, ghDirectFail = false, ghStatus = 0, storeMode = 'sync', transport = 'gm', noMenu = false, preWait = 0 }) {
   const calls = [];
   const payloads = [];
   const headers = [];
@@ -96,6 +104,15 @@ async function run({ aiMode, texts, settings, host, lang, pageText, manual = tru
     thinkingOff: false,
     cache: false
   }, settings || {}));
+
+  /* 扩展环境仿真：chrome.storage.local + runtime.sendMessage + onMessage */
+  const extStore = {};
+  const extListeners = [];
+  if (EXT) {
+    extStore['ghx2_ai_settings'] = aiSettings;
+    if (contrib) extStore['ghx2_contrib_settings'] = JSON.stringify(contrib);
+    Object.keys(stored).forEach((k) => { extStore[k] = stored[k]; });
+  }
 
   const sandbox = {
     console, setTimeout, clearTimeout, JSON, Promise, WeakSet, Set, Map, Math, Date, Error, String, Object, Array, RegExp,
@@ -170,8 +187,112 @@ async function run({ aiMode, texts, settings, host, lang, pageText, manual = tru
   sandbox.open = (u) => { opened.push(u); return null; };
   sandbox.window = sandbox;
 
+  /* ---- 各脚本管理器差异仿真 ----
+   * storeMode：sync（篡改猴/暴力猴/脚本猫）| async（Greasemonkey 4 / Safari）| local（无接口）
+   * transport：gm（GM_xmlhttpRequest）| gm4（GM.xmlHttpRequest）| fetch
+   * noMenu：模拟没有菜单接口的管理器 */
+  const gmReq = sandbox.GM_xmlhttpRequest;
+
+  if (storeMode === 'async') {
+    delete sandbox.GM_getValue;
+    delete sandbox.GM_setValue;
+    sandbox.GM = {
+      getValue: (k) => {
+        if (k in stored) return Promise.resolve(stored[k]);
+        if (k === 'ghx2_ai_settings') return Promise.resolve(aiSettings);
+        if (k === 'ghx2_contrib_settings' && contrib) return Promise.resolve(JSON.stringify(contrib));
+        return Promise.resolve(undefined);
+      },
+      setValue: (k, v) => { stored[k] = v; return Promise.resolve(); },
+      listValues: () => Promise.resolve(Object.keys(stored).concat(['ghx2_ai_settings']))
+    };
+  } else if (storeMode === 'local') {
+    delete sandbox.GM_getValue;
+    delete sandbox.GM_setValue;
+    sandbox.localStorage = {
+      _d: {},
+      getItem(k) { return (k in this._d) ? this._d[k] : null; },
+      setItem(k, v) { this._d[k] = String(v); }
+    };
+  }
+
+  if (transport === 'gm4') {
+    delete sandbox.GM_xmlhttpRequest;
+    sandbox.GM = sandbox.GM || {};
+    sandbox.GM.xmlHttpRequest = (o) => new Promise((resolve, reject) => {
+      gmReq(Object.assign({}, o, {
+        onload: resolve,
+        onerror: () => reject(new Error('网络错误')),
+        ontimeout: () => reject(new Error('请求超时')),
+        onabort: () => reject(new Error('请求被中断'))
+      }));
+    });
+  } else if (transport === 'fetch') {
+    delete sandbox.GM_xmlhttpRequest;
+    sandbox.fetch = (url, init) => new Promise((resolve, reject) => {
+      gmReq({
+        method: (init && init.method) || 'GET',
+        url: url,
+        headers: (init && init.headers) || {},
+        data: init && init.body,
+        onload: (rr) => resolve({ status: rr.status, text: () => Promise.resolve(rr.responseText || '') }),
+        onerror: () => reject(new TypeError('Failed to fetch'))
+      });
+    });
+  }
+
+  if (noMenu) delete sandbox.GM_registerMenuCommand;
+
+  if (EXT) {
+    sandbox.chrome = {
+      storage: {
+        local: {
+          get(keys, cb) {
+            const r = Object.assign({}, extStore);
+            if (typeof cb === 'function') { cb(r); return undefined; }
+            return Promise.resolve(r);
+          },
+          set(obj, cb) {
+            Object.assign(extStore, obj);
+            Object.assign(stored, obj);           /* 断言仍读 stored */
+            if (typeof cb === 'function') { cb(); return undefined; }
+            return Promise.resolve();
+          },
+          remove(k, cb) {
+            delete extStore[k];
+            if (typeof cb === 'function') { cb(); return undefined; }
+            return Promise.resolve();
+          }
+        }
+      },
+      runtime: {
+        lastError: null,
+        sendMessage(msg, cb) {
+          if (msg && msg.type === 'xhr') {
+            /* 内容脚本的 GM_xmlhttpRequest 最终落到这里，复用同一套请求桩 */
+            sandbox.GM_xmlhttpRequest(Object.assign({}, msg.opts, {
+              onload: (r) => cb({ status: r.status, statusText: r.statusText || '', text: r.responseText || '' }),
+              onerror: (e) => cb({ error: (e && e.message) || '网络错误' })
+            }));
+            return;
+          }
+          if (cb) cb(undefined);
+        },
+        onMessage: { addListener: (fn) => { extListeners.push(fn); } }
+      }
+    };
+  }
+
   vm.createContext(sandbox);
-  vm.runInContext(SRC, sandbox, { filename: 'script.js' });
+  vm.runInContext(EXT ? EXT_SRC : SRC, sandbox, { filename: 'script.js' });
+
+  if (EXT) {
+    /* 内容脚本要等 storage 快照回来才注册消息监听，这里补上菜单到测试桩 */
+    await sleep(60);
+    EXT_MENUS.forEach((n) => {
+      menus[n] = () => extListeners.forEach((fn) => fn({ type: 'menuRun', label: n }, null, () => { }));
+    });
+  }
 
   document.body = body;
   body.textContent = pageText || '';
@@ -205,6 +326,7 @@ async function run({ aiMode, texts, settings, host, lang, pageText, manual = tru
   });
 
   if (waitDict) { await sleep(1400); await drain(); }
+  if (preWait) { await sleep(preWait); }   /* 给异步存储的预读留出时间 */
 
   if (manual) {
     const snaps = [];
@@ -571,6 +693,66 @@ const TW_PAGE = ('這個頁面使用繁體中文撰寫，用來驗證自動翻�
     await r2.drain();
     check('401 不重试镜像', r2.ghCalls.length === 1, r2.ghCalls.length + ' 次请求');
     check('提示 HTTP 401', /401/.test(r2.toasts()), r2.toasts().slice(-70));
+  }
+
+  /* 场景 24–28 只针对用户脚本环境：扩展版的存储与跨域由 chrome.* 承担，无法也用不着伪造 */
+  if (!EXT) {
+
+  console.log('场景 24：只有异步存储接口（Greasemonkey 4 / Safari Userscripts）→ 先预读再翻译');
+  {
+    const r = await run({
+      aiMode: 'ok', host: 'example.com', texts: ['Zebra crossing ahead'],
+      storeMode: 'async', preWait: 240
+    });
+    check('配置被预读出来，AI 已调用', ai(r).length >= 1, 'ai=' + ai(r).length);
+    check('译文落到页面', /^译:/.test(r.nodes[0].nodeValue), r.nodes[0].nodeValue);
+  }
+
+  console.log('场景 25：对照组 —— 完全没有存储接口 → 读不到 Key，回退引擎链');
+  {
+    const r = await run({
+      aiMode: 'ok', host: 'example.com', texts: ['Zebra crossing ahead'],
+      storeMode: 'local', preWait: 240
+    });
+    check('没有 AI 请求', ai(r).length === 0, 'ai=' + ai(r).length);
+    check('改用引擎链', engine(r).length >= 1, 'engine=' + engine(r).length);
+  }
+
+  console.log('场景 26：没有 GM_xmlhttpRequest，走 GM.xmlHttpRequest（GM4 风格）→ 词库同步成功');
+  {
+    const r = await run({
+      aiMode: 'ok', host: 'github.com', waitDict: true, dictMode: 'okFirst',
+      transport: 'gm4', extraDict: { 'zebra crossing ahead': '斑马线在前方' },
+      texts: ['Zebra crossing ahead']
+    });
+    const meta = JSON.parse(r.stored['ghx2_dict_meta'] || '{}');
+    check('词库写入本机缓存', !!r.stored['ghx2_dict_remote'], Object.keys(r.stored).join(','));
+    check('记录了版本', meta.version === '2099.01.01', JSON.stringify(meta).slice(0, 90));
+    check('远端词条生效、不请求 AI', r.nodes[0].nodeValue === '斑马线在前方' && ai(r).length === 0,
+      r.nodes[0].nodeValue + ' | ai=' + ai(r).length);
+  }
+
+  console.log('场景 27：两个跨域接口都没有，退回 fetch → 词库仍能同步');
+  {
+    const r = await run({
+      aiMode: 'ok', host: 'github.com', waitDict: true, dictMode: 'okFirst',
+      transport: 'fetch', extraDict: { 'zebra crossing ahead': '斑马线在前方' },
+      texts: ['Zebra crossing ahead']
+    });
+    check('fetch 路径取到词库', !!r.stored['ghx2_dict_remote'], Object.keys(r.stored).join(','));
+    check('远端词条生效', r.nodes[0].nodeValue === '斑马线在前方', r.nodes[0].nodeValue);
+  }
+
+  console.log('场景 28：管理器没有菜单接口 → 启动后提示怎么打开设置');
+  {
+    const r = await run({
+      aiMode: 'ok', host: 'example.com', texts: ['Zebra crossing ahead'],
+      noMenu: true, manual: true, presses: 0, preWait: 1750
+    });
+    check('未注册任何菜单', Object.keys(r.menus).length === 0, JSON.stringify(Object.keys(r.menus)));
+    check('提示了快捷键', /Alt\+N/.test(r.toasts()), r.toasts().slice(-100));
+  }
+
   }
 
   console.log('\n结果: ' + pass + ' 通过 / ' + fail + ' 失败');

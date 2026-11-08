@@ -9,7 +9,7 @@
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.2.9
+// @version     1.3.0
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @description 合并版：自动检测页面语言，非简体中文自动翻译（英文/日文/韩文/德文等，繁体转简体），F9 可随时手动重译；AI 大模型优先、不可用时回退引擎链。
@@ -70,8 +70,10 @@
  *   入口（仅配置，不触发翻译）：
  *     - 篡改猴菜单命令「AI 翻译设置」
  *     - 页面左下浮动「AI 设置」按钮
- *   面板（Shadow DOM，隔离 GitHub 样式）可填：provider / baseUrl / API Key /
- *   model / batchSize / maxChars / timeout / thinkingOff / cache。
+ *   面板（Shadow DOM，隔离 GitHub 样式）为居中卡片 + 遮罩，按「运行方式 / 接口 /
+ *   参数」三段分组，开关项用拨动开关；关闭方式：× / Esc / 点遮罩。
+ *   可填：provider / baseUrl / API Key（可点「显示」查看）/ model /
+ *   batchSize / maxChars / timeout / thinkingOff / cache。
  *   保存到本机篡改猴存储（键名 ghx2_ai_settings），F9 执行时读取；
  *   「测试连接」用面板当前值发一次真实请求验证可用性。
  *   公开版本内置 NVIDIA API Key 已置空，请填入自己的 Key；
@@ -2708,46 +2710,143 @@ function openAISettings() {
   if (document.getElementById('ghx-ai-settings')) return;
   var host = document.createElement('div');
   host.id = 'ghx-ai-settings';
-  host.style.cssText = 'all:initial;position:fixed;left:12px;bottom:12px;z-index:2147483647;';
+  host.style.cssText = 'all:initial;position:fixed;inset:0;z-index:2147483647;';
   var sr = host.attachShadow({ mode: 'open' });
   document.body.appendChild(host);
 
   sr.innerHTML = '' +
     '<style>' +
-    '.panel{position:relative;width:350px;background:#fff;color:#24292f;font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border:1px solid #d0d7de;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:14px 16px;}' +
-    '.panel h4{margin:0 0 6px;font-size:14px;}' +
-    '.panel .hint{color:#57606a;font-size:12px;margin-bottom:10px;}' +
-    '.field{display:block;margin:8px 0;}' +
-    '.field span{display:block;color:#57606a;font-size:12px;margin-bottom:3px;}' +
-    'input[type=text],input[type=password],input[type=number]{width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #d0d7de;border-radius:6px;font:inherit;}' +
-    'input[type=checkbox]{margin-right:6px;}' +
-    '.row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;color:#57606a;}' +
-    '.row input{flex:0 0 auto;width:90px;}' +
-    '.btns{display:flex;gap:8px;margin-top:12px;}' +
-    'button{padding:6px 12px;border:1px solid #d0d7de;border-radius:6px;background:#f6f8fa;cursor:pointer;font:inherit;}' +
-    'button.primary{background:#1f883d;color:#fff;border-color:#1f883d;}' +
-    '#ghx-msg{margin-top:8px;font-size:12px;color:#57606a;min-height:18px;}' +
+    '*{box-sizing:border-box}' +
+    '.mask{position:fixed;inset:0;background:rgba(15,23,42,.42);display:flex;align-items:center;justify-content:center;padding:18px;animation:ghx-fade .14s ease}' +
+    '.card{--bg:#fff;--fg:#1f2328;--muted:#656d76;--line:#d8dee4;--soft:#f6f8fa;--field:#fff;--accent:#1a7f37;--accent-h:#17803a;--ring:rgba(26,127,55,.25);--danger:#cf222e;--ok:#1a7f37;' +
+      'width:480px;max-width:100%;max-height:88vh;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);' +
+      'border:1px solid var(--line);border-radius:14px;box-shadow:0 24px 64px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.08);overflow:hidden;' +
+      'font:13px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;animation:ghx-pop .18s cubic-bezier(.2,.8,.3,1)}' +
+    '@keyframes ghx-fade{from{opacity:0}to{opacity:1}}' +
+    '@keyframes ghx-pop{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}' +
+    '.head{display:flex;align-items:flex-start;gap:12px;padding:18px 20px 14px;border-bottom:1px solid var(--line)}' +
+    '.head h4{margin:0;font-size:15px;font-weight:600;letter-spacing:.2px}' +
+    '.head p{margin:4px 0 0;font-size:12px;color:var(--muted)}' +
+    '.head-t{flex:1;min-width:0}' +
+    '.x{flex:0 0 auto;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:0;border-radius:7px;background:transparent;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}' +
+    '.x:hover{background:var(--soft);color:var(--fg)}' +
+    '.body{padding:4px 20px 8px;overflow:auto;overscroll-behavior:contain;flex:1 1 auto;scrollbar-width:thin;scrollbar-color:#c9d1d9 transparent}' +
+    '.body::-webkit-scrollbar{width:8px}' +
+    '.body::-webkit-scrollbar-thumb{background:#c9d1d9;border-radius:4px;border:2px solid transparent;background-clip:padding-box}' +
+    '.body::-webkit-scrollbar-thumb:hover{background:#adb7c0;background-clip:padding-box}' +
+    '.body::-webkit-scrollbar-track{background:transparent}' +
+    '.sec{padding:14px 0;border-bottom:1px solid var(--line)}' +
+    '.sec:last-child{border-bottom:0}' +
+    '.sec-t{font-size:11px;font-weight:600;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}' +
+    '.field{display:block;margin-bottom:12px}' +
+    '.field:last-child{margin-bottom:2px}' +
+    '.field>span{display:block;font-size:12px;font-weight:500;color:var(--fg);margin-bottom:6px}' +
+    'input[type=text],input[type=password],input[type=number],select{width:100%;height:34px;padding:0 10px;color:var(--fg);background:var(--field);' +
+      'border:1px solid var(--line);border-radius:8px;font:inherit;outline:none;transition:border-color .15s,box-shadow .15s}' +
+    'input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--ring)}' +
+    'input::placeholder{color:#a0a8b0}' +
+    'select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 15px) 15px,calc(100% - 10px) 15px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:30px}' +
+    '.wrap{position:relative}' +
+    '.wrap input{padding-right:56px}' +
+    '.eye{position:absolute;right:4px;top:4px;height:26px;padding:0 8px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer}' +
+    '.eye:hover{background:var(--soft);color:var(--fg)}' +
+    '.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px}' +
+    '.grid3 .field{margin-bottom:8px}' +
+    '.grid3 .field>span{text-align:center}' +
+    '.grid3 input{text-align:center;padding:0 6px}' +
+    '.switch-row{display:flex;align-items:center;gap:14px;padding:8px 0}' +
+    '.switch-row+.switch-row{border-top:1px dashed var(--line)}' +
+    '.switch-row.tight{padding:9px 0}' +
+    '.switch-txt{flex:1;min-width:0}' +
+    '.switch-txt b{display:block;font-size:13px;font-weight:500}' +
+    '.switch-txt i{display:block;font-size:11.5px;font-style:normal;color:var(--muted);margin-top:2px}' +
+    '.sw{position:relative;display:inline-flex;flex:0 0 auto;cursor:pointer}' +
+    '.sw input{position:absolute;opacity:0;width:0;height:0}' +
+    '.sw span{position:relative;display:block;width:38px;height:22px;border-radius:11px;background:var(--line);transition:background .18s}' +
+    '.sw span::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.28);transition:transform .18s}' +
+    '.sw input:checked+span{background:var(--accent)}' +
+    '.sw input:checked+span::after{transform:translateX(16px)}' +
+    '.sw input:focus-visible+span{box-shadow:0 0 0 3px var(--ring)}' +
+    '.foot{display:flex;align-items:center;gap:8px;padding:13px 20px;border-top:1px solid var(--line);background:var(--soft)}' +
+    '.status{flex:1;min-width:0;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+    '.status.ok{color:var(--ok)}' +
+    '.status.err{color:var(--danger)}' +
+    '.btn{height:32px;padding:0 14px;border-radius:8px;font:inherit;font-weight:500;cursor:pointer;border:1px solid var(--line);background:var(--bg);color:var(--fg);transition:background .15s,border-color .15s}' +
+    '.btn:hover{background:var(--soft)}' +
+    '.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}' +
+    '.btn.primary:hover{background:var(--accent-h);border-color:var(--accent-h)}' +
+    '@media (prefers-color-scheme:dark){.card{--bg:#161b22;--fg:#e6edf3;--muted:#8b949e;--line:#30363d;--soft:#1c2128;--field:#0d1117;--accent:#238636;--accent-h:#2ea043;--ring:rgba(46,160,67,.3);--danger:#f85149;--ok:#3fb950}' +
+      '.mask{background:rgba(1,4,9,.68)}input::placeholder{color:#6e7681}' +
+      '.body{scrollbar-color:#484f58 transparent}.body::-webkit-scrollbar-thumb{background:#484f58;background-clip:padding-box}.body::-webkit-scrollbar-thumb:hover{background:#5b646e;background-clip:padding-box}}' +
     '</style>' +
-    '<div class="panel">' +
-      '<h4>AI 翻译设置（大模型）</h4>' +
-      '<div class="hint">仅配置大模型接口，不触发翻译；Key 只保存在本机。</div>' +
-      '<label class="field"><input type="checkbox" id="enb" style="width:auto"> 启用 AI 翻译（默认优先使用，不可用时回退引擎链）</label>' +
-      '<label class="field"><input type="checkbox" id="auto" style="width:auto"> 非简体中文页面自动翻译（自动检测语种，F9 仍可手动重译）</label>' +
-      '<label class="field"><span>接口类型 provider：nvidia / openai / builtin</span><input type="text" id="prov" placeholder="builtin 表示浏览器内置 AI（免 Key）"></label>' +
-      '<label class="field"><span>接口地址 baseUrl</span><input type="text" id="url" placeholder="https://.../v1/chat/completions"></label>' +
-      '<label class="field"><span>API Key</span><input type="password" id="key" style="width:230px" autocomplete="off"></label>' +
-      '<label class="field"><span>模型名称 model</span><input type="text" id="model" placeholder="例如 nvidia/nemotron-3.5-super-vl-120b-a12b"></label>' +
-      '<div class="row">批量条数<input type="number" id="batch" min="1" max="100"></div>' +
-      '<div class="row">每条最长字符<input type="number" id="maxc" min="10" max="500"></div>' +
-      '<div class="row">超时(ms)<input type="number" id="to" min="1000" max="600000"></div>' +
-      '<label class="field"><input type="checkbox" id="think" style="width:auto"> 推理模型关闭思考（NVIDIA 有意义）</label>' +
-      '<label class="field"><input type="checkbox" id="cache" style="width:auto"> 译文写入缓存（二次访问零请求）</label>' +
-      '<div class="btns">' +
-        '<button class="primary" id="save">保存</button>' +
-        '<button id="test">测试连接</button>' +
-        '<button id="close">关闭</button>' +
+    '<div class="mask" id="mask">' +
+      '<div class="card" role="dialog" aria-modal="true" aria-label="AI 翻译设置">' +
+        '<div class="head">' +
+          '<div class="head-t">' +
+            '<h4>AI 翻译设置</h4>' +
+            '<p>配置大模型接口，保存后立即在本标签页生效，不会触发翻译。</p>' +
+          '</div>' +
+          '<button class="x" id="close" type="button" title="关闭（Esc）" aria-label="关闭">' +
+            '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/></svg>' +
+          '</button>' +
+        '</div>' +
+        '<div class="body">' +
+          '<div class="sec">' +
+            '<div class="sec-t">运行方式</div>' +
+            '<div class="switch-row">' +
+              '<div class="switch-txt"><b>启用 AI 翻译</b><i>优先走大模型；不可用时自动回退翻译引擎</i></div>' +
+              '<label class="sw"><input type="checkbox" id="enb"><span></span></label>' +
+            '</div>' +
+            '<div class="switch-row">' +
+              '<div class="switch-txt"><b>非简体中文页面自动翻译</b><i>自动识别语种；只翻非简中页面，F9 仍可手动重译</i></div>' +
+              '<label class="sw"><input type="checkbox" id="auto"><span></span></label>' +
+            '</div>' +
+          '</div>' +
+          '<div class="sec">' +
+            '<div class="sec-t">接口</div>' +
+            '<label class="field"><span>接口类型</span>' +
+              '<select id="prov">' +
+                '<option value="nvidia">NVIDIA NIM</option>' +
+                '<option value="openai">OpenAI 兼容接口</option>' +
+                '<option value="builtin">浏览器内置 AI（免 Key）</option>' +
+              '</select>' +
+            '</label>' +
+            '<label class="field"><span>接口地址 baseUrl</span>' +
+              '<input type="text" id="url" spellcheck="false" placeholder="https://integrate.api.nvidia.com/v1/chat/completions">' +
+            '</label>' +
+            '<div class="field"><span>API Key</span>' +
+              '<div class="wrap">' +
+                '<input type="password" id="key" spellcheck="false" autocomplete="off" placeholder="粘贴你的 API Key，仅保存在本机">' +
+                '<button class="eye" id="eye" type="button" title="显示或隐藏 Key">显示</button>' +
+              '</div>' +
+            '</div>' +
+            '<label class="field"><span>模型名称 model</span>' +
+              '<input type="text" id="model" spellcheck="false" placeholder="nvidia/nemotron-3.5-super-vl-120b-a12b">' +
+            '</label>' +
+          '</div>' +
+          '<div class="sec">' +
+            '<div class="sec-t">参数</div>' +
+            '<div class="grid3">' +
+              '<label class="field"><span>批量条数</span><input type="number" id="batch" min="1" max="100"></label>' +
+              '<label class="field"><span>每条字符上限</span><input type="number" id="maxc" min="10" max="5000"></label>' +
+              '<label class="field"><span>超时（毫秒）</span><input type="number" id="to" min="1000" max="600000"></label>' +
+            '</div>' +
+            '<div class="switch-row tight">' +
+              '<div class="switch-txt"><b>推理模型关闭思考</b><i>NVIDIA Nemotron 等推理模型需要开启</i></div>' +
+              '<label class="sw"><input type="checkbox" id="think"><span></span></label>' +
+            '</div>' +
+            '<div class="switch-row tight">' +
+              '<div class="switch-txt"><b>译文写入缓存</b><i>同一句第二次出现直接命中，不重复请求</i></div>' +
+              '<label class="sw"><input type="checkbox" id="cache"><span></span></label>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="foot">' +
+          '<div class="status" id="ghx-msg"></div>' +
+          '<button class="btn" id="test" type="button">测试连接</button>' +
+          '<button class="btn primary" id="save" type="button">保存</button>' +
+        '</div>' +
       '</div>' +
-      '<div id="ghx-msg"></div>' +
     '</div>';
 
   var f = function (id) { return sr.getElementById(id); };
@@ -2756,7 +2855,16 @@ function openAISettings() {
     var a = CFG.ai;
     f('enb').checked = !!a.enabled;
     f('auto').checked = a.autoTranslate !== false;
-    f('prov').value = a.provider || '';
+    var pv = a.provider || 'nvidia';
+    var sel = f('prov');
+    var has = false;
+    for (var i = 0; i < sel.options.length; i++) { if (sel.options[i].value === pv) { has = true; break; } }
+    if (!has) {
+      var o = document.createElement('option');
+      o.value = pv; o.textContent = pv;
+      sel.appendChild(o);
+    }
+    sel.value = pv;
     f('url').value = a.baseUrl || '';
     f('key').value = a.apiKey || '';
     f('model').value = a.model || '';
@@ -2768,7 +2876,11 @@ function openAISettings() {
   }
   fill();
 
-  function msg(t) { f('ghx-msg').textContent = t; }
+  function msg(t, kind) {
+    var el = f('ghx-msg');
+    el.textContent = t || '';
+    el.className = 'status' + (kind ? ' ' + kind : '');
+  }
 
   function collect() {
     return {
@@ -2796,30 +2908,51 @@ function openAISettings() {
     Store.set(AI_SET_KEY, JSON.stringify(o));
   }
 
+  function closePanel() {
+    try { document.removeEventListener('keydown', onKey, true); } catch (e) { }
+    if (host.parentNode) host.parentNode.removeChild(host);
+  }
+
+  function onKey(ev) {
+    if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); closePanel(); }
+  }
+  document.addEventListener('keydown', onKey, true);
+
+  f('mask').addEventListener('click', function (ev) {
+    if (ev.target === f('mask')) closePanel();
+  });
+
+  f('eye').addEventListener('click', function () {
+    var inp = f('key'), btn = f('eye');
+    var show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    btn.textContent = show ? '隐藏' : '显示';
+  });
+
   f('save').addEventListener('click', function () {
     applySettings();
-    msg('已保存（当前标签页生效；重启浏览器后配置仍在）');
+    msg('已保存，本标签页立即生效', 'ok');
   });
 
   f('test').addEventListener('click', function () {
     applySettings();
+    msg('正在测试连接…');
     if (CFG.ai.provider === 'builtin') {
       aiRequest(['Watch'], function (err, arr) {
-        if (err) msg('内置 AI 测试失败：' + err);
-        else msg('内置 AI 连接成功：Watch → ' + (arr && arr[0] ? arr[0] : '(未返回译文)'));
+        if (err) msg('内置 AI 测试失败：' + err, 'err');
+        else msg('内置 AI 连接成功：Watch → ' + (arr && arr[0] ? arr[0] : '(未返回译文)'), 'ok');
       });
       return;
     }
-    if (!CFG.ai.apiKey) { msg('接口为 API 方式，请先填 API Key'); return; }
+    if (!CFG.ai.apiKey) { msg('接口为 API 方式，请先填 API Key', 'err'); return; }
     aiRequest(['Watch'], function (err, arr) {
-      if (err) msg('测试失败：' + err);
-      else msg('连接成功：Watch → ' + (arr && arr[0] ? arr[0] : '(未返回译文)'));
+      if (err) msg('连接失败：' + err, 'err');
+      else msg('连接成功：Watch → ' + (arr && arr[0] ? arr[0] : '(未返回译文)'), 'ok');
     });
   });
 
-  f('close').addEventListener('click', function () {
-    if (host.parentNode) host.parentNode.removeChild(host);
-  });
+  f('close').addEventListener('click', closePanel);
+  try { f('key').focus(); } catch (e) { }
 }
 
 /* 设置入口注册 + 浮动按钮（不触发翻译） */
@@ -2831,10 +2964,32 @@ try {
 
 function mountSettingsButton() {
   if (document.getElementById('ghx-settings-btn')) return;
+  if (!document.getElementById('ghx-settings-css')) {
+    var st = document.createElement('style');
+    st.id = 'ghx-settings-css';
+    st.textContent =
+      '#ghx-settings-btn{position:fixed!important;left:16px!important;bottom:16px!important;z-index:2147483646!important;' +
+      'display:inline-flex!important;align-items:center!important;gap:6px!important;height:32px!important;padding:0 12px 0 10px!important;margin:0!important;' +
+      'border:1px solid #d0d7de!important;border-radius:999px!important;background:#fff!important;color:#24292f!important;' +
+      'font:500 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif!important;' +
+      'letter-spacing:.2px!important;cursor:pointer!important;box-shadow:0 2px 10px rgba(0,0,0,.12)!important;' +
+      'opacity:.72!important;transition:opacity .18s,box-shadow .18s,transform .18s!important;}' +
+      '#ghx-settings-btn:hover{opacity:1!important;box-shadow:0 6px 18px rgba(0,0,0,.18)!important;transform:translateY(-1px)!important;}' +
+      '#ghx-settings-btn:active{transform:translateY(0)!important;}' +
+      '#ghx-settings-btn svg{flex:0 0 auto!important;display:block!important;width:13px!important;height:13px!important;}' +
+      '@media (prefers-color-scheme:dark){#ghx-settings-btn{background:#21262d!important;color:#e6edf3!important;border-color:#3d444d!important;' +
+      'box-shadow:0 2px 10px rgba(0,0,0,.4)!important;}}';
+    (document.head || document.documentElement).appendChild(st);
+  }
   var b = document.createElement('button');
   b.id = 'ghx-settings-btn';
-  b.textContent = '⚙ AI 设置';
-  b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:2147483646;padding:6px 10px;border:1px solid #d0d7de;border-radius:6px;background:#f6f8fa;color:#24292f;font:12px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.16);';
+  b.type = 'button';
+  b.title = 'AI 翻译设置';
+  b.innerHTML =
+    '<svg viewBox="0 0 16 16" aria-hidden="true">' +
+    '<path d="M8 5.6a2.4 2.4 0 100 4.8 2.4 2.4 0 000-4.8z" stroke="currentColor" stroke-width="1.4" fill="none"/>' +
+    '<path d="M8 1.4l.9 1.7 1.9-.4.5 1.9 1.8.8-.9 1.7 1.1 1.6-1.5 1.2.2 1.9-1.9.4-.8 1.8-1.6-.9-1.6.9-.8-1.8-1.9-.4.2-1.9L1.4 8.7l1.1-1.6-.9-1.7 1.8-.8.5-1.9 1.9.4L8 1.4z" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linejoin="round" transform="translate(0 -.4) scale(1 .98)"/>' +
+    '</svg><span>AI 设置</span>';
   b.addEventListener('click', openAISettings);
   document.body.appendChild(b);
 }

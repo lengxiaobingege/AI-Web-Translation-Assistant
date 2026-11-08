@@ -2,7 +2,7 @@
 
 > 任何网页，只要不是简体中文就自动翻成中文；F9 随时重译。三层路径依次接力：**本地界面词条 → AI 大模型 → 免费引擎链**，前一层能解决就不花后一层的钱。
 
-用户脚本，装一个脚本管理器（篡改猴、脚本猫、暴力猴等）即可 · 当前版本 **1.4.18** · [安装](#安装) · [国内网络与 GitHub 访问](#国内网络与-github-访问)
+用户脚本，装一个脚本管理器（篡改猴、脚本猫、暴力猴等）即可 · 当前版本 **1.4.19** · [安装](#安装) · [国内网络与 GitHub 访问](#国内网络与-github-访问)
 
 ## 功能
 
@@ -420,10 +420,10 @@ https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/AI
 
 本脚本基于以下两个独立项目合并改编：
 
-- [k1995/github-i18n-plugin](https://github.com/k1995/github-i18n-plugin) —— 界面词条与替换规则部分
-- [syhyz1990/translate](https://github.com/syhyz1990/translate) —— 整页翻译引擎链部分
+- [k1995/github-i18n-plugin](https://github.com/k1995/github-i18n-plugin) —— 界面词条与替换规则部分；版本为默认分支 `master` 的 2026-11-06 源码快照，对应提交 [`31c9673`](https://github.com/k1995/github-i18n-plugin/commit/31c9673f94e814a9917304c0b859a29e157765e6)
+- [syhyz1990/translate](https://github.com/syhyz1990/translate) —— 整页翻译引擎链部分；版本为默认分支 `main` 的 2026-11-06 源码快照，对应提交 [`ba2a9d6`](https://github.com/syhyz1990/translate/commit/ba2a9d6f1a2ebaff792c490a543e59fa4f132323)
 
-二者彼此独立，无官方关联。引用基准为两个上游默认分支的源码快照（2026-11-06），以内嵌方式合并改编，未通过 `@require` 加载外部代码；权益与许可状态见「许可」。
+二者彼此独立，无官方关联。以上逐项给出内嵌库的名称、来源地址与版本（快照提交 SHA）；以内嵌方式合并改编，未通过 `@require` 加载外部代码。脚本图标为自绘原创几何图形，不含第三方图像素材；权益与许可状态见「许可」。
 
 ## 作者
 
@@ -452,7 +452,7 @@ https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/AI
 
 **用户安装**：[Greasy Fork 脚本页 604410](https://greasyfork.org/zh-CN/scripts/604410)，安装与更新地址是 <https://update.greasyfork.org/scripts/604410/AI-Web-Translation-Assistant.user.js>。这个地址由 Greasy Fork 生成：它会按官方规则把 `@updateURL` / `@downloadURL` 改写成指向自己，更新不再经过国内打不开的 `raw.githubusercontent.com`；GitHub 直装用户仍走原地址，**源码里的这两行不需要为上架改动**。
 
-按 Greasy Fork 官方规则核对：脚本约 223 KB（上限 2 MB）、全明文无压缩混淆、不引用外部可执行代码、六种 `@antifeature` 均不涉及、无 `@license`（上游未授权，不代声明）。
+按 Greasy Fork 官方规则核对：脚本约 223 KB（上限 2 MB）、全明文无压缩混淆、不引用外部可执行代码、内嵌库已逐项给出名称 / 来源 / 版本（快照提交 SHA）、六种 `@antifeature` 均不涉及、无 `@license`（上游未授权，不代声明）。
 
 ## 许可
 

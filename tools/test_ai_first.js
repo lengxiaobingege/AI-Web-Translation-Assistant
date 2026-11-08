@@ -12,14 +12,6 @@ const vm = require('vm');
 const SRC = fs.readFileSync(path.join(__dirname, '..', 'AI-Web-Translation-Assistant.user.js'), 'utf8');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-/* GHX_TARGET=ext 时改跑扩展产物：内容脚本 + chrome.* 仿真，
-   用来确认「同一份逻辑在扩展环境里行为不变」，而不只是油猴里能跑。 */
-const EXT = process.env.GHX_TARGET === 'ext' || process.argv.includes('--ext');
-const EXT_SRC = EXT
-  ? fs.readFileSync(path.join(__dirname, '..', 'dist', 'extension', 'content.js'), 'utf8')
-  : null;
-const EXT_MENUS = ['AI 翻译设置', '立即更新词库', '上传词库增量到 GitHub', '提交词库 Issue', '关闭翻译（恢复原文）'];
-
 function mockEl(tag) {
   const el = {
     tagName: tag || 'DIV',
@@ -104,15 +96,6 @@ async function run({ aiMode, texts, settings, host, lang, pageText, manual = tru
     thinkingOff: false,
     cache: false
   }, settings || {}));
-
-  /* 扩展环境仿真：chrome.storage.local + runtime.sendMessage + onMessage */
-  const extStore = {};
-  const extListeners = [];
-  if (EXT) {
-    extStore['ghx2_ai_settings'] = aiSettings;
-    if (contrib) extStore['ghx2_contrib_settings'] = JSON.stringify(contrib);
-    Object.keys(stored).forEach((k) => { extStore[k] = stored[k]; });
-  }
 
   const sandbox = {
     console, setTimeout, clearTimeout, JSON, Promise, WeakSet, Set, Map, Math, Date, Error, String, Object, Array, RegExp,
@@ -243,56 +226,8 @@ async function run({ aiMode, texts, settings, host, lang, pageText, manual = tru
 
   if (noMenu) delete sandbox.GM_registerMenuCommand;
 
-  if (EXT) {
-    sandbox.chrome = {
-      storage: {
-        local: {
-          get(keys, cb) {
-            const r = Object.assign({}, extStore);
-            if (typeof cb === 'function') { cb(r); return undefined; }
-            return Promise.resolve(r);
-          },
-          set(obj, cb) {
-            Object.assign(extStore, obj);
-            Object.assign(stored, obj);           /* 断言仍读 stored */
-            if (typeof cb === 'function') { cb(); return undefined; }
-            return Promise.resolve();
-          },
-          remove(k, cb) {
-            delete extStore[k];
-            if (typeof cb === 'function') { cb(); return undefined; }
-            return Promise.resolve();
-          }
-        }
-      },
-      runtime: {
-        lastError: null,
-        sendMessage(msg, cb) {
-          if (msg && msg.type === 'xhr') {
-            /* 内容脚本的 GM_xmlhttpRequest 最终落到这里，复用同一套请求桩 */
-            sandbox.GM_xmlhttpRequest(Object.assign({}, msg.opts, {
-              onload: (r) => cb({ status: r.status, statusText: r.statusText || '', text: r.responseText || '' }),
-              onerror: (e) => cb({ error: (e && e.message) || '网络错误' })
-            }));
-            return;
-          }
-          if (cb) cb(undefined);
-        },
-        onMessage: { addListener: (fn) => { extListeners.push(fn); } }
-      }
-    };
-  }
-
   vm.createContext(sandbox);
-  vm.runInContext(EXT ? EXT_SRC : SRC, sandbox, { filename: 'script.js' });
-
-  if (EXT) {
-    /* 内容脚本要等 storage 快照回来才注册消息监听，这里补上菜单到测试桩 */
-    await sleep(60);
-    EXT_MENUS.forEach((n) => {
-      menus[n] = () => extListeners.forEach((fn) => fn({ type: 'menuRun', label: n }, null, () => { }));
-    });
-  }
+  vm.runInContext(SRC, sandbox, { filename: 'script.js' });
 
   document.body = body;
   body.textContent = pageText || '';
@@ -695,9 +630,6 @@ const TW_PAGE = ('這個頁面使用繁體中文撰寫，用來驗證自動翻�
     check('提示 HTTP 401', /401/.test(r2.toasts()), r2.toasts().slice(-70));
   }
 
-  /* 场景 24–28 只针对用户脚本环境：扩展版的存储与跨域由 chrome.* 承担，无法也用不着伪造 */
-  if (!EXT) {
-
   console.log('场景 24：只有异步存储接口（Greasemonkey 4 / Safari Userscripts）→ 先预读再翻译');
   {
     const r = await run({
@@ -753,6 +685,13 @@ const TW_PAGE = ('這個頁面使用繁體中文撰寫，用來驗證自動翻�
     check('提示了快捷键', /Alt\+N/.test(r.toasts()), r.toasts().slice(-100));
   }
 
+  console.log('场景 29：非 GitHub 站点同样吃同一套词条库（内置词条命中就直接替换）');
+  {
+    const r = await run({
+      aiMode: 'ok', host: 'example.com', texts: ['Watch']
+    });
+    check('内置词条在第三方站点命中', r.nodes[0].nodeValue === '关注', r.nodes[0].nodeValue);
+    check('命中词条后不再请求 AI', ai(r).length === 0, 'ai=' + ai(r).length);
   }
 
   console.log('\n结果: ' + pass + ' 通过 / ' + fail + ' 失败');

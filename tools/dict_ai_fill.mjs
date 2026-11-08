@@ -66,6 +66,13 @@ if (!API_KEY) {
   process.exit(0);
 }
 
+/* 启动横幅：把「实际请求打到哪」打印出来。
+ * 之前踩过坑——workflow 里写死了旧服务商地址，换了 Key 却仍请求老地址，
+ * 表现成「Invalid API key」，很难看出根因。 */
+console.log('接口：' + BASE_URL);
+console.log('模型：' + MODEL);
+console.log('凭据：' + API_KEY.slice(0, 5) + '***' + API_KEY.slice(-4) + '（长度 ' + API_KEY.length + '）');
+
 const data = JSON.parse(fs.readFileSync(DICT_PATH, 'utf8'));
 const dict = data.dict;
 
@@ -176,6 +183,7 @@ async function callAI(items) {
 /* ---------- 分批翻译 ---------- */
 const added = [];
 const rejected = [];
+let fatal = '';
 
 for (let i = 0; i < queued.length; i += BATCH) {
   const items = queued.slice(i, i + BATCH);
@@ -183,7 +191,16 @@ for (let i = 0; i < queued.length; i += BATCH) {
   try {
     got = await callAI(items);
   } catch (e) {
-    console.log('第 ' + (i / BATCH + 1) + ' 批失败：' + redact(e && e.message));
+    const msg = redact(e && e.message);
+    console.log('第 ' + (i / BATCH + 1) + ' 批失败：' + msg);
+
+    /* 熔断：401/403/404 属于「Key 错了 / 地址错了 / 没权限」这类根本性问题，
+     * 后面每一批注定以同样方式失败，继续跑只是白烧请求和日志篇幅。
+     * 直接终止，把真正原因留在日志最上方。 */
+    if (/^HTTP (401|403|404)\b/.test(msg) || /fetch failed/.test(msg)) {
+      fatal = '第 ' + (i / BATCH + 1) + ' 批遇到不可恢复错误，已终止：' + msg;
+      break;
+    }
     continue;
   }
   for (const key of items) {
@@ -200,6 +217,12 @@ for (let i = 0; i < queued.length; i += BATCH) {
     added.push([key, tv]);
   }
   console.log('第 ' + (i / BATCH + 1) + ' 批：累计通过 ' + added.length + ' 条');
+}
+
+if (fatal) {
+  console.error('\n致命错误：' + fatal);
+  console.error('请检查仓库 Secret 的 AI_API_KEY 是否与接口归属一致，以及 AI_BASE_URL 是否指向同一服务商。');
+  process.exit(1);
 }
 
 if (!added.length) {

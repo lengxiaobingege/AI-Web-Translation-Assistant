@@ -124,7 +124,7 @@ def delete_file(repo_path: str, message: str):
 
 
 def push_file(local: pathlib.Path, message: str):
-    # 保留相对仓库根的目录结构（如 dict/github.zh-CN.json）
+    # 保留相对仓库根的目录结构（如 dict/zh-CN.json）
     repo_path = local.relative_to(ROOT).as_posix()
     # 中文等非 ASCII 路径必须 URL 编码，否则 http.client 会抛 UnicodeEncodeError
     quoted = urllib.parse.quote(repo_path)

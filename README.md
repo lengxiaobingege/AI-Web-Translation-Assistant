@@ -2,7 +2,7 @@
 
 一个合并版的 Tampermonkey 用户脚本：**非简体中文网页自动翻译，F9 一键手动重译**，同时包含「GitHub 汉化」与「超级翻译助手」两套能力。
 
-当前版本：**1.4.4**
+当前版本：**1.4.5**
 
 ## 功能
 
@@ -252,7 +252,7 @@ node tools/build_dict.js               # 重建内嵌词库（可选，正式词
 安装地址（raw）：
 
 ```text
-https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
+https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 ```
 
 ## 更新
@@ -266,7 +266,7 @@ https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./
 国内直连 `raw.githubusercontent.com` 不稳定时，可改用 jsDelivr 镜像（内容相同，更新有几小时缓存延迟）：
 
 ```text
-https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant.@main/AI-Web-Translation-Assistant.user.js
+https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/AI-Web-Translation-Assistant.user.js
 ```
 
 ## 来源
@@ -301,7 +301,7 @@ https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant.@main/A
 
 本仓库就是该脚本的发布地址，脚本文件从这里下载；后续改动也会推送到这里：
 
-<https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.>
+<https://github.com/lengxiaobingege/AI-Web-Translation-Assistant>
 
 ## License
 

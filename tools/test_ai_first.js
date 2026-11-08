@@ -146,7 +146,7 @@ async function run({ aiMode, texts, settings, host, lang, pageText, manual = tru
           o.onload({ status: 201, responseText: JSON.stringify({ content: { path: 'dict/contribs/x.json' } }) });
           return;
         }
-        const isDict = /dict\/github\.zh-CN\.json/.test(o.url);
+        const isDict = /dict\/zh-CN\.json/.test(o.url);
         if (isDict) {
           dictCalls.push(o.url);
           const nth = dictCalls.length;
@@ -250,7 +250,7 @@ async function run({ aiMode, texts, settings, host, lang, pageText, manual = tru
           return 'AI[' + c.slice(c.indexOf('[')) + ']';
         } catch (e) { return 'AI?'; }
       }
-      if (/dict\/github\.zh-CN\.json/.test(u)) {
+      if (/dict\/zh-CN\.json/.test(u)) {
         const mh = u.match(/^https?:\/\/([^/]+)/);
         return '词库:' + (mh ? mh[1] : '?');
       }
@@ -310,8 +310,8 @@ const TW_PAGE = ('這個頁面使用繁體中文撰寫，用來驗證自動翻�
     else { fail++; console.log('  ✗ ' + name + (extra ? ' → ' + extra : '')); }
   };
   const ai = r => r.calls.filter(u => /chat\/completions/.test(u));
-  const engine = r => r.calls.filter(u => !/chat\/completions/.test(u) && !/dict\/github\.zh-CN\.json/.test(u));
-  const dictReq = r => r.calls.filter(u => /dict\/github\.zh-CN\.json/.test(u));
+  const engine = r => r.calls.filter(u => !/chat\/completions/.test(u) && !/dict\/zh-CN\.json/.test(u));
+  const dictReq = r => r.calls.filter(u => /dict\/zh-CN\.json/.test(u));
 
   console.log('场景 1：F9 + AI 可用 → 全走 AI，不请求引擎');
   {

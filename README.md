@@ -2,7 +2,7 @@
 
 一个合并版的 Tampermonkey 用户脚本：**非简体中文网页自动翻译，F9 一键手动重译**，同时包含「GitHub 汉化」与「超级翻译助手」两套能力。
 
-当前版本：**1.4.5**
+当前版本：**1.4.6**
 
 ## 功能
 
@@ -174,7 +174,7 @@ AI 记忆随使用不断增长（按 F9 重译也会更新它），但它始终�
 两种回传方式：
 
 - **有 Token（推荐自己用）**：在「词库回传」里填一个带仓库写权限的 GitHub Token（只存本机，不随词库上传），点「推送到 GitHub」，脚本会把清单写成 `dict/contribs/contrib-<日期>-<时间>.json` 直接提交到 `main`，成功后本地清单清空。
-- **没有 Token（其他用户）**：点「提交 Issue」，脚本生成一条预填好的 Issue（正文是前 120 条 `原文 → 译文`），用户确认后提交。维护者审核后合并进 `dict/github.zh-CN.json`，下一轮同步就生效。
+- **没有 Token（其他用户）**：点「提交 Issue」，脚本生成一条预填好的 Issue（正文是前 120 条 `原文 → 译文`）。提交后由 **「词库 Issue 接收」工作流自动解析**成 `dict/contribs/contrib-issue-<编号>.json` 进入同一条合并队列，并回帖告知解析了多少条；这份内容同样要等维护者触发合并才会进正式词库。
 
 为什么不做「自动合并」：直接改正式词库要处理去重、术语一致性、错译纠正，任何一条错的都会推给所有用户，所以贡献先进 `dict/contribs/` 或 Issue 排队，由维护者合并。这样无 Token 的用户也有零门槛通道，不需要注册什么服务、也不需要脚本作者提供服务器。
 
@@ -198,7 +198,9 @@ node tools/merge_contrib.js --force   # 需要覆盖同名条目时用（改错�
 # 确认无误后提交 dict/github.zh-CN.json 并推送
 ```
 
-> Issue 渠道来的贡献没有 JSON 文件，人工挑选后手工加进 `dict/github.zh-CN.json`（或转成 contribs 格式再走合并），改完跑 `node tools/dict_lint.js` 确认。
+> Issue 渠道的自动化：用户一提交 Issue，`.github/workflows/dict-issue-intake.yml` 就会跑 `tools/issue_to_contrib.js` 解析正文——
+> 只认 `- 原文 → 译文` 单行；单条 Issue 上限 300 条、键与译文各 200 字符；含 HTML 标签、URL、代码块、以及中文→外文的反向条目一律跳过；解析结果写进 `dict/contribs/`，然后在 Issue 里回帖说明接收了几条、跳过几行，并打上「词库贡献」标签。
+> 解析失败或没有可用词条时不会提交任何文件，只在 Issue 里说明，维护者仍可人工处理。
 
 ### 合并规则
 

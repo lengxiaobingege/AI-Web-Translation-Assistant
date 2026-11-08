@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-const DICT_PATH = path.join(root, 'dict/github.zh-CN.json');
+const DICT_PATH = path.join(root, 'dict/zh-CN.json');
 const SCRIPT_PATH = path.join(root, 'AI-Web-Translation-Assistant.user.js');
 
 const argv = process.argv.slice(2);

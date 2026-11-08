@@ -2,10 +2,14 @@
   "name": "ai-web-translation-assistant-tools",
   "private": true,
   "type": "commonjs",
-  "description": "词库维护脚本（质量检查、统计、AI 续写）",
+  "description": "词库维护脚本（质量检查、统计、AI 续写、贡献合并）",
   "scripts": {
     "lint": "node tools/dict_lint.js",
     "report": "node tools/dict_report.js",
-    "fill": "node tools/dict_ai_fill.js"
+    "fill": "node tools/dict_ai_fill.mjs",
+    "merge": "node tools/merge_contrib.js",
+    "merge:dry": "node tools/merge_contrib.js --dry",
+    "stat": "node tools/dict_stat.js",
+    "test": "node tools/test_ai_first.js"
   }
 }

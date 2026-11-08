@@ -41,8 +41,8 @@ jobs:
       - name: 合并前统计
         id: base
         run: |
-          echo "count=$(node -e 'console.log(require("./dict/github.zh-CN.json").count)')" >> $GITHUB_OUTPUT
-          echo "version=$(node -e 'console.log(require("./dict/github.zh-CN.json").version)')" >> $GITHUB_OUTPUT
+          echo "count=$(node -e 'console.log(require("./dict/zh-CN.json").count)')" >> $GITHUB_OUTPUT
+          echo "version=$(node -e 'console.log(require("./dict/zh-CN.json").version)')" >> $GITHUB_OUTPUT
           n=$(ls dict/contribs/*.json 2>/dev/null | wc -l || echo 0)
           echo "files=${n}" >> $GITHUB_OUTPUT
 
@@ -114,8 +114,8 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          NEW_COUNT=$(node -e 'console.log(require("./dict/github.zh-CN.json").count)')
-          NEW_VERSION=$(node -e 'console.log(require("./dict/github.zh-CN.json").version)')
+          NEW_COUNT=$(node -e 'console.log(require("./dict/zh-CN.json").count)')
+          NEW_VERSION=$(node -e 'console.log(require("./dict/zh-CN.json").version)')
           git add dict/ README.md
           git commit -m "合并用户贡献：${{ steps.base.outputs.count }} → ${NEW_COUNT} 条（${NEW_VERSION}）" \
                      -m "来源 dict/contribs/，已通过词库检查并清理对应贡献文件；README 统计同步更新。"

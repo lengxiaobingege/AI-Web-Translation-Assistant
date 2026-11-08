@@ -178,12 +178,27 @@ AI 记忆随使用不断增长（按 F9 重译也会更新它），但它始终�
 
 为什么不做「自动合并」：直接改正式词库要处理去重、术语一致性、错译纠正，任何一条错的都会推给所有用户，所以贡献先进 `dict/contribs/` 或 Issue 排队，由维护者合并。这样无 Token 的用户也有零门槛通道，不需要注册什么服务、也不需要脚本作者提供服务器。
 
-维护者合并后的清理方式：
+维护者合并用户贡献，两种方式任选：
+
+**方式一：GitHub Actions 一键合并（推荐）**
+
+到仓库 Actions 页 → 左侧选「词库贡献合并」→ Run workflow → 执行。它会：
+1. 把 `dict/contribs/*.json` 合并进正式词库（默认只加不改；勾选 force 可覆盖同名条目）；
+2. 合并后自动跑词库检查，不通过就放弃提交；
+3. 通过则提交到 `main` 并清理已合并的贡献文件，版本号 `-rN` 自动 +1；
+4. 全部用户在每天北京时间 0 点后自动拿到新词库。
+
+**方式二：本地命令行**
 
 ```bash
-node tools/merge_contrib.js            # 读取 dict/contribs/*.json，去重后并入 dict/github.zh-CN.json
-node tools/build_dict.js               # 重建内嵌词库（可选，正式词库走远端即可）
+git clone 本仓库 && cd AI-Web-Translation-Assistant
+node tools/merge_contrib.js --dry     # 先看统计：新增/跳过/覆盖各多少
+node tools/merge_contrib.js           # 正式合并，自动清理已合并文件、version -rN +1
+node tools/merge_contrib.js --force   # 需要覆盖同名条目时用（改错译）
+# 确认无误后提交 dict/github.zh-CN.json 并推送
 ```
+
+> Issue 渠道来的贡献没有 JSON 文件，人工挑选后手工加进 `dict/github.zh-CN.json`（或转成 contribs 格式再走合并），改完跑 `node tools/dict_lint.js` 确认。
 
 ### 合并规则
 

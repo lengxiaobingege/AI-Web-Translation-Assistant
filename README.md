@@ -2,7 +2,7 @@
 
 > 任何网页，只要不是简体中文就自动翻成中文；F9 随时重译。三层路径依次接力：**本地界面词条 → AI 大模型 → 免费引擎链**，前一层能解决就不花后一层的钱。
 
-Tampermonkey / 篡改猴用户脚本 · 当前版本 **1.4.10** · [安装](#安装) · [国内网络与 GitHub 访问](#国内网络与-github-访问)
+浏览器扩展 / 用户脚本（篡改猴、脚本猫、暴力猴等），同一份源码两种装法 · 当前版本 **1.4.11** · [安装](#安装) · [国内网络与 GitHub 访问](#国内网络与-github-访问)
 
 ## 功能
 
@@ -323,21 +323,89 @@ node tools/merge_contrib.js --force   # 需要覆盖同名条目时用（改错�
 
 ## 安装
 
-1. 浏览器装好 Tampermonkey（篡改猴）。
-2. 把 `AI-Web-Translation-Assistant.user.js` 拖入浏览器安装；或在篡改猴「新建脚本」里粘贴代码；或直接打开下面的 raw 地址，篡改猴会自动弹出安装页。
-3. 打开任意网页按 F9，或在设置面板里配好模型与 Key 后等它自动翻译。
+两种装法，功能和词库完全一样，选一个即可：
 
-安装地址（raw）：
+| 方式 | 适合谁 | 前置条件 |
+| --- | --- | --- |
+| **浏览器扩展** | 不想装脚本管理器的人 | 无。Chrome、Edge 都能装 |
+| 用户脚本 | 已经有脚本管理器的人 | 篡改猴 / 脚本猫 / 暴力猴等，任选一个 |
+
+### 方式一：浏览器扩展（不用篡改猴）
+
+1. 下载扩展包（约 88 KB）：
+   [`dist/ai-web-translation-ext-1.4.11.zip`](dist/ai-web-translation-ext-1.4.11.zip)
+   国内直连 GitHub 不稳时用加速地址：
+   ```text
+   https://gh-proxy.com/https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/dist/ai-web-translation-ext-1.4.11.zip
+   ```
+2. 解压到**固定目录**（不要放下载目录里随手删，删了扩展就失效）。
+3. 打开 `chrome://extensions`（Edge 是 `edge://extensions`），右上角开启**开发者模式**。
+4. 点**加载已解压的扩展程序**，选中解压后的文件夹（能看到 `manifest.json` 的那一层）。
+5. 工具栏点图标即是菜单，页面里按 F9 翻译。
+
+> 扩展尚未上架商店，所以要走上面这四步。包里的 `README.txt` 写了同样的步骤，方便随包转发给别人。
+> 如果浏览器提示「无法加载扩展程序」，多半是下载后被解压工具套了两层文件夹——选中真正含 `manifest.json` 的那一层即可。
+
+### 方式二：用户脚本（任选脚本管理器，不绑定篡改猴）
+
+脚本只用到 4 类 GM 接口，且在**存储**与**跨域**两处集中适配，所以主流管理器都能直接跑：
+
+| 脚本管理器 | 支持度 | 菜单在哪 | 备注 |
+| --- | --- | --- | --- |
+| 篡改猴 Tampermonkey | 完整 | 扩展图标 → 脚本名 | 同步存储，跨域不额外询问 |
+| 暴力猴 Violentmonkey | 完整 | 扩展图标 → 脚本名 | 首次访问新域名会弹一次授权，同意即可 |
+| 脚本猫 ScriptCat | 完整 | 脚本猫面板 → 脚本 → 菜单 | 国内可直连，不想装篡改猴就用它 |
+| AdGuard（桌面版） | 完整 | AdGuard 设置 → 扩展 | 顺带能拦广告 |
+| FireMonkey | 完整 | 扩展图标 | Firefox 上无篡改猴时的选择 |
+| Greasemonkey 4 | 可用 | 扩展图标 | 只有 Promise 接口，脚本启动时先预读配置再翻译 |
+| Safari「Userscripts」 | 基本可用 | 无菜单 | 用 `Alt+N` 打开设置；跨域请求可能被系统拦 |
+
+装好后打开设置面板，底部**运行环境**一行会写明当前识别到的管理器、存储形态（同步 / 异步预读 / localStorage）和跨域通道。真出问题时，把这一行发出来就能定位，不用猜。
+
+1. 先装上面任意一个管理器。
+2. 打开下面的安装地址，管理器会自动拦下来弹安装页：
 
 ```text
 https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 ```
 
+国内打不开 `raw.githubusercontent.com` 时改用反代（内容相同）：
+
+```text
+https://gh-proxy.com/https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
+```
+
+3. 打开任意网页按 F9；装完先按 `Alt+N` 填一次模型与 Key。
+
+> 两种装法的配置互不相通：扩展把配置存在浏览器的扩展存储里，脚本版存在脚本管理器里。换装法需要重新填一次 API Key。
+>
+> 脚本管理器之间也不通：从篡改猴换到脚本猫，配置不会跟着走，同样是重填一次。
+
+### 扩展版是怎么来的
+
+扩展不是另写一份代码，而是由 `tools/build_ext.js` 从同一个 `.user.js` 生成，所以两边的翻译逻辑、词库、设置面板永远一致。脚本只用了 4 个脚本管理器 API，改造就是把它们换成浏览器原生能力：
+
+| 用户脚本 API | 扩展里换成 |
+| --- | --- |
+| `GM_getValue` / `GM_setValue` | `chrome.storage.local`（启动时一次读进内存，保住脚本要的同步语义） |
+| `GM_xmlhttpRequest` | 后台 service worker 的 `fetch`（页面里直接请求会撞 CORS 与 CSP） |
+| `GM_registerMenuCommand` | 收集成列表，由工具栏弹窗调起 |
+
+改完脚本后重新构建并验证：
+
+```bash
+node tools/build_ext.js --zip                 # 生成 dist/extension/ 并打包
+node tools/test_ai_first.js --ext             # 用扩展产物跑同一套行为测试
+node tools/verify_ext.js                      # 真机加载验收（Chrome 137+ 会提示跳过）
+```
+
 ## 更新
 
-脚本头部已内置 `@updateURL` / `@downloadURL`，篡改猴会按该地址检查新版本，正常情况无需手动操作。
+脚本头部已内置 `@updateURL` / `@downloadURL`，脚本管理器会按该地址检查新版本，正常情况无需手动操作。
 
-手动安装的脚本若不自动更新，在篡改猴里打开本脚本 →「设置」标签页，把上一步的 raw 地址分别填进 **更新地址（Update URL）** 和 **下载地址（Download URL）**，保存后点「检查更新」。
+检查更新的入口各家不同：篡改猴/暴力猴是扩展图标 → 本脚本 → 检查更新；脚本猫是面板里的脚本详情 → 更新。
+
+手动安装的脚本若不自动更新，在本脚本的编辑页把上一步的 raw 地址填进 **更新地址（Update URL）** 与 **下载地址（Download URL）**，保存后点「检查更新」。
 
 想立刻升到最新版，也可以直接重新打开该 raw 地址安装一次，脚本列表里的版本号会随之变化。
 

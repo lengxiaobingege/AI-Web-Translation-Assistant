@@ -9,7 +9,7 @@
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.2.8
+// @version     1.2.9
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @description 合并版：自动检测页面语言，非简体中文自动翻译（英文/日文/韩文/德文等，繁体转简体），F9 可随时手动重译；AI 大模型优先、不可用时回退引擎链。
@@ -181,6 +181,23 @@ function toast(msg) {
 
 /* 共享的排除规则 / 已处理标记（两个模块与统一遍历共用） */
 var DONE = new WeakSet();
+/* 原文备份：F9 再次翻译时先恢复原文再重译；Map 强引用仅页面生命周期内存在 */
+var ORIGINALS = new Map();
+var forceFresh = false;      /* 再次翻译时置 true：绕过 AI 缓存与引擎缓存，用当前设置重译 */
+function recordOriginal(node) {
+  if (node && node.nodeType === 3 && !ORIGINALS.has(node)) ORIGINALS.set(node, node.nodeValue);
+}
+function restoreOriginals() {
+  var n = 0;
+  ORIGINALS.forEach(function (raw, node) {
+    try { if (node.parentNode && node.nodeValue !== raw) { node.nodeValue = raw; n++; } } catch (e) { }
+  });
+  ORIGINALS.clear();
+  DONE = new WeakSet();
+  /* 还原词库基线（DICT 在 I18n 模块闭包内，须经由模块方法清理） */
+  try { if (typeof I18n !== 'undefined' && I18n.resetDict) I18n.resetDict(); } catch (e) { }
+  return n;
+}
 var MARC = 'data-ghx-t';
 function isMarked(el) { return el.hasAttribute && el.hasAttribute(MARC); }
 var EXCLUDE_IDS = ["readme", "file-name-editor-breadcrumb", "StickyHeader", "sticky-file-name-id", "sticky-breadcrumb"];
@@ -522,6 +539,7 @@ async function runPage(nodes) {
     for (var i = 0; i < arr.length; i++) {
       var rec = arr[i];
       if (!rec.node.parentNode || rec.node.nodeValue !== rec.raw) continue;
+      recordOriginal(rec.node);
       var lead = (rec.raw.match(/^\s*/) || [''])[0];
       var trail = (rec.raw.match(/\s*$/) || [''])[0];
       rec.node.nodeValue = lead + translated + trail;
@@ -535,7 +553,7 @@ async function runPage(nodes) {
   function worker() {
     if (!queue.length) return Promise.resolve();
     var item = queue.shift();
-    if (trCache[item.key]) { apply(item, trCache[item.key]); return worker(); }
+    if (!forceFresh && trCache[item.key]) { apply(item, trCache[item.key]); return worker(); }
     return translateText(item.text, CFG.from, CFG.to)
       .then(function (res) { apply(item, res.text); })
       .catch(function () { fail++; })
@@ -2318,6 +2336,13 @@ function looksLikeUiText(text) {
 }
 
 
+/* 内置词库基线快照：AI 结果会写入 DICT，「再次翻译」时用它还原，避免 AI 译文被当成词库命中而跳过重译 */
+var DICT_BASE = {};
+for (var _dbK in DICT) DICT_BASE[_dbK] = DICT[_dbK];
+function resetDict() {
+  for (var k in DICT) { if (!hasOwn(DICT_BASE, k)) delete DICT[k]; }
+}
+
 for (var _aiK in aiCache) { if (!hasOwn(DICT, _aiK) && aiCache[_aiK]) DICT[_aiK] = aiCache[_aiK]; }
 
 function translateTextNode(node) {
@@ -2340,7 +2365,7 @@ function translateTextNode(node) {
     var uiTag = /^(A|BUTTON|LI|NAV|HEADER|OPTION|SELECT)$/;
     if (uiTag.test(parent.tagName)) {
       var out = splitTranslate(text);
-      if (out) { node.nodeValue = out; DONE.add(node); return true; }
+      if (out) { recordOriginal(node); node.nodeValue = out; DONE.add(node); return true; }
     }
   }
   /* AI 补译由 F9 统一调度，不在此自动入队 */
@@ -2600,6 +2625,7 @@ function aiComplete(nodes, done) {
     for (var q = 0; q < recs.length; q++) {
       var r = recs[q];
       if (!r.node.parentNode || r.node.nodeValue !== r.raw) continue;
+      recordOriginal(r.node);
       var lead = (r.raw.match(/^\s*/) || [''])[0];
       var trail = (r.raw.match(/\s*$/) || [''])[0];
       r.node.nodeValue = lead + t + trail;
@@ -2613,7 +2639,7 @@ function aiComplete(nodes, done) {
   var pending = [];
   for (var c = 0; c < texts.length; c++) {
     var ck = normKey(texts[c]);
-    if (aiCfg.cache && hasOwn(aiCache, ck)) {
+    if (aiCfg.cache && !forceFresh && hasOwn(aiCache, ck)) {
       if (applyOne(ck, aiCache[ck])) ok++;
       continue;
     }
@@ -2647,7 +2673,7 @@ function aiComplete(nodes, done) {
   next();
 }
 
-return { applyDict: applyDict, aiComplete: aiComplete };
+return { applyDict: applyDict, aiComplete: aiComplete, resetDict: resetDict };
 })();
 
 
@@ -2820,7 +2846,9 @@ var running = false;
 
 async function runAll(source) {
   running = true;
-  toast(source === 'auto' ? '检测到非简体中文页面，开始自动翻译…' : '开始处理本页…');
+  toast(source === 'auto' ? '检测到非简体中文页面，开始自动翻译…'
+    : source === 'again' ? '已恢复原文，重新翻译本页…'
+    : '开始处理本页…');
   try {
     var root = document.body;
     if (!root) throw new Error('页面尚未就绪');
@@ -2849,6 +2877,7 @@ async function runAll(source) {
     toast('执行失败：' + (e && e.message ? e.message : e));
   } finally {
     running = false;
+    forceFresh = false;               /* 缓存旁路只对本次「再次翻译」生效 */
   }
 }
 
@@ -2922,6 +2951,14 @@ document.addEventListener('keydown', function (ev) {
   ev.preventDefault();
   ev.stopPropagation();
   if (running) return;                /* 防重入：连按不重复执行 */
+
+  /* 再次翻译：页面已翻过 → 先恢复原文，绕过缓存，按当前设置重新翻译 */
+  if (ORIGINALS.size) {
+    restoreOriginals();
+    forceFresh = true;
+    runAll('again');
+    return;
+  }
   runAll();
 }, true);
 

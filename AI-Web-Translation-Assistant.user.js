@@ -11,7 +11,7 @@
 // @homepageURL https://github.com/lengxiaobingege/AI-Web-Translation-Assistant
 // @supportURL  https://github.com/lengxiaobingege/AI-Web-Translation-Assistant/issues
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.4.13
+// @version     1.4.14
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @description Non-Chinese pages auto-translate to Chinese, F9 to retranslate anytime; AI model first with free engine fallback; built-in GitHub UI glossary replaces hits instantly at zero cost.
@@ -114,7 +114,7 @@
  *   或 provider 填 builtin 使用浏览器内置 AI（免 Key）。
  *
  * ==================== 词库在线更新 ====================
- *   词库正式存放位置：GitHub 仓库 dict/github.zh-CN.json
+ *   词库正式存放位置：GitHub 仓库 dict/zh-CN.json
  *   （结构：{ version, count, dict:{英文:译文}, patterns:[{re,to}], cssRules:[] }）
  *   自动：每天北京时间 0 点之后的首次访问同步一次。浏览器脚本无法在 0:00 主动
  *         唤醒（后台标签的定时器会被节流），因此实现为「跨日首次打开页面时拉取」，
@@ -169,13 +169,13 @@ var CFG = {
   },
   dictSources: [
     { name: 'GitHub 原始地址',
-      url: 'https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/dict/github.zh-CN.json' },
+      url: 'https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/dict/zh-CN.json' },
     { name: 'gh-proxy 反代（国内）',
-      url: 'https://gh-proxy.com/https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/dict/github.zh-CN.json' },
+      url: 'https://gh-proxy.com/https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/dict/zh-CN.json' },
     { name: 'jsDelivr (Cloudflare)',
-      url: 'https://testingcf.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/dict/github.zh-CN.json' },
+      url: 'https://testingcf.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/dict/zh-CN.json' },
     { name: 'jsDelivr',
-      url: 'https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/dict/github.zh-CN.json' }
+      url: 'https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/dict/zh-CN.json' }
   ],
   descTranslate: false,         /* 仓库描述翻译按钮已移除（接口 400） */
   ai: {
@@ -2640,7 +2640,7 @@ function countDictKeys(obj) {
 var BUILTIN_N = countDictKeys(DICT_BASE);   /* 脚本自带词条数（远端合并前） */
 
 /* ==================================================================
- * 远端词库合并（数据来自仓库 dict/github.zh-CN.json）
+ * 远端词库合并（数据来自仓库 dict/zh-CN.json）
  * 规则：
  *   1. 远端条目直接覆盖同名内置条目（修错译、统一术语靠这条路）
  *   2. 远端条目同时写入 DICT_BASE，这样 F9「再次翻译」清 AI 译文时不会误删
@@ -3091,7 +3091,7 @@ return {
 
 /* ==================================================================
  * 词库在线更新
- *   词库正式存放位置：GitHub 仓库 dict/github.zh-CN.json
+ *   词库正式存放位置：GitHub 仓库 dict/zh-CN.json
  *   自动：每天北京时间 0 点之后的首次访问同步一次
  *         （浏览器脚本无法在 0:00 主动唤醒，等价实现是「跨日首次打开页面时拉取」，
  *          24 小时内最多一次；后台标签的定时器会被浏览器节流，定时器方案不可靠）
@@ -3326,7 +3326,7 @@ function contribIssueBody(hits, picked, total) {
   return '<!-- ghx-contrib -->\n' +
     '以下词条在翻译时词库未命中，由用户脚本自动采集（本地共 ' + total + ' 条，本次列出 ' + picked.length + ' 条）' +
     (total > picked.length ? '，剩余 ' + (total - picked.length) + ' 条下次再点「提交 Issue」继续' : '') +
-    '，请审核后合并进 dict/github.zh-CN.json：\n\n' + list.join('\n');
+    '，请审核后合并进 dict/zh-CN.json：\n\n' + list.join('\n');
 }
 
 /* 挑出本次要提交的词条：优先没提交过的；全部提交过则从头再来一轮 */

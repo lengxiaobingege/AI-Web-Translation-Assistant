@@ -18,12 +18,12 @@
 
 先把会联网的部分说清楚，免得装完才发现：
 
-| 动作 | 发出去的内容 | 发给谁 | 什么时候 |
-| --- | --- | --- | --- |
-| AI 翻译 | 页面待译文本（按批，附页面标题作上下文） | 你在设置里填的 AI 服务商 | 自动翻译触发，或按 F9 |
-| 免费引擎兜底 | 页面待译文本 | Bing / MyMemory / Google | AI 未启用、失败或文本超长时 |
-| 词库同步 | 无（只读 GET，不上传任何内容） | GitHub raw / gh-proxy / jsDelivr | 每天 0 点后首次访问，或点「立即更新」 |
-| 词条回传 | 你手动确认的词条清单 | 本仓库 `dict/contribs/` 或 Issue | **默认关闭**，必须手动点按钮 |
+| 动作     | 发出去的内容               | 发给谁                              | 什么时候                 |
+| ------ | -------------------- | -------------------------------- | -------------------- |
+| AI 翻译  | 页面待译文本（按批，附页面标题作上下文） | 你在设置里填的 AI 服务商                   | 自动翻译触发，或按 F9         |
+| 免费引擎兜底 | 页面待译文本               | Bing / MyMemory / Google         | AI 未启用、失败或文本超长时      |
+| 词库同步   | 无（只读 GET，不上传任何内容）    | GitHub raw / gh-proxy / jsDelivr | 每天 0 点后首次访问，或点「立即更新」 |
+| 词条回传   | 你手动确认的词条清单           | 本仓库 `dict/contribs/` 或 Issue     | **默认关闭**，必须手动点按钮     |
 
 - **不收集**用户身份、Cookie、浏览历史；没有统计、埋点、上报接口。
 - **API Key** 只存本机脚本管理器存储，公开版内置 Key 为空；换管理器要重填一次。
@@ -32,12 +32,12 @@
 
 **完整对外域名**（与脚本头 `@connect` 一致，未列出的域名不会发起请求）：
 
-| 用途 | 域名 |
-| --- | --- |
-| 免费翻译引擎 | `cn.bing.com`、`www.bing.com`、`translate.googleapis.com`、`api.mymemory.translated.net` |
+| 用途                  | 域名                                                                                                                                                |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 免费翻译引擎              | `cn.bing.com`、`www.bing.com`、`translate.googleapis.com`、`api.mymemory.translated.net`                                                             |
 | AI 服务商（只连设置里选定的那一个） | `integrate.api.nvidia.com`、`api.deepseek.com`、`api.openai.com`、`dashscope.aliyuncs.com`、`open.bigmodel.cn`、`api.moonshot.cn`、`api.siliconflow.cn` |
-| 词库同步（只读 GET） | `raw.githubusercontent.com`、`gh-proxy.com`、`testingcf.jsdelivr.net`、`cdn.jsdelivr.net` |
-| 词条回传（写，需 Token） | `api.github.com` |
+| 词库同步（只读 GET）        | `raw.githubusercontent.com`、`gh-proxy.com`、`testingcf.jsdelivr.net`、`cdn.jsdelivr.net`                                                            |
+| 词条回传（写，需 Token）     | `api.github.com`                                                                                                                                  |
 
 脚本自身不检查更新、不加载远端脚本，更新交给脚本管理器按 `@updateURL` 处理（频率由管理器决定，不会高于每天一次）。按 Greasy Fork 六种 `@antifeature`（ads / membership / miner / payment / referral-link / tracking）逐条核对，本脚本均不涉及。
 
@@ -85,36 +85,36 @@
 
 ### 已覆盖
 
-| 位置 | 实现方式 | 备注 |
-| --- | --- | --- |
-| 普通文本节点 | `TreeWalker` 遍历 `body`，长度 2–2000 字符，单次上限 2500 个节点 | 先整句精确匹配，再按词拆分 |
-| UI 短文本 | 父元素为 `A` / `BUTTON` / `LI` / `NAV` / `HEADER` / `OPTION` / `SELECT`，且不超过 6 个词 | 拆词拼译，提高命中率 |
-| 数量 + 单位 | 24 条模式规则，例如 `3 commits` → `3 个提交`、`2 hours ago` → `2 小时前` | 远端词库还可追加规则 |
-| 表单按钮 | `input[type=button/submit/reset/image]` 的 `value` | |
-| 占位符 | `input` / `textarea` / `select` 的 `placeholder` | |
-| 无障碍标签 | `aria-label` | |
-| 相对时间 | `<relative-time>`、`<time[datetime]>`、`[data-view-component][datetime]`，用 `Intl.RelativeTimeFormat('zh-CN')` | 含 Shadow DOM 内的相对时间 |
-| 指定元素 | `CSS_RULES`（如 PR 页的 `a[aria-label='Pull requests you created']`） | 目前 1 条 |
-| 词库未命中的英文短句 | 交给 AI 批量翻译（F9 / 自动翻译时） | 失败再走引擎链 |
+| 位置         | 实现方式                                                                                                        | 备注                  |
+| ---------- | ----------------------------------------------------------------------------------------------------------- | ------------------- |
+| 普通文本节点     | `TreeWalker` 遍历 `body`，长度 2–2000 字符，单次上限 2500 个节点                                                           | 先整句精确匹配，再按词拆分       |
+| UI 短文本     | 父元素为 `A` / `BUTTON` / `LI` / `NAV` / `HEADER` / `OPTION` / `SELECT`，且不超过 6 个词                               | 拆词拼译，提高命中率          |
+| 数量 + 单位    | 24 条模式规则，例如 `3 commits` → `3 个提交`、`2 hours ago` → `2 小时前`                                                   | 远端词库还可追加规则          |
+| 表单按钮       | `input[type=button/submit/reset/image]` 的 `value`                                                           |                     |
+| 占位符        | `input` / `textarea` / `select` 的 `placeholder`                                                             |                     |
+| 无障碍标签      | `aria-label`                                                                                                |                     |
+| 相对时间       | `<relative-time>`、`<time[datetime]>`、`[data-view-component][datetime]`，用 `Intl.RelativeTimeFormat('zh-CN')` | 含 Shadow DOM 内的相对时间 |
+| 指定元素       | `CSS_RULES`（如 PR 页的 `a[aria-label='Pull requests you created']`）                                            | 目前 1 条              |
+| 词库未命中的英文短句 | 交给 AI 批量翻译（F9 / 自动翻译时）                                                                                      | 失败再走引擎链             |
 
 ### 不覆盖（按设计排除）
 
 > 下表里用类名的规则（`.markdown-body`、`.blob-code` 等）来自 GitHub，在别的网站自然不匹配，不会误伤；真正跨站点生效的是标签级排除（`code` / `pre` / `svg` / 跨域 iframe 等）。
 
-| 范围 | 原因 |
-| --- | --- |
-| `code` / `pre` / `kbd` / `samp` / `var` / `tt` / `data`，以及任何祖先含 `code`/`pre` 的元素 | 代码、命令、diff 内容不能翻，翻了就打不开 |
-| `.markdown-body`（README、Issue/PR 正文、评论正文） | 正文是阅读对象，翻译会破坏链接、表格、代码块；只在缺失时由 AI 兜底普通文本，不含正文 |
-| `.blob-code` / `.cm-editor` / `.CodeMirror` / `.diff-table` / `.diff-view` / `.react-code-lines` | 代码查看器与 diff |
-| `.js-navigation-container` / `.react-tree-show-tree-items` / `.js-path-segment` / `.final-path` | 文件树与路径，翻了会指错文件 |
-| `.table-list` / `.pagination` / `.diffstat` / `.topic-tag` / `.Label` / `.float-right` | 数值与状态标签，误译代价高（`Label` 本身还是组件类名） |
-| `itemprop="name"` 的元素 | 仓库名、Issue/PR 标题等标识性文本，保持原样便于搜索和复制 |
-| `svg` / `math` / `iframe` / `object` / `template` / `noscript` / `script` / `style` | 非可视文本或跨文档 |
-| Shadow DOM 内部（相对时间除外） | `TreeWalker` 不进入 shadow root |
-| 跨域 iframe 内的文档 | 浏览器同源策略 |
-| `title` 属性（悬停提示）、`img` 的 `alt` | 目前只处理 `aria-label` 与 `placeholder` |
-| CSS 伪元素 `content`、`canvas`、图片里的文字 | 不是 DOM 文本节点，脚本无法改写 |
-| 浏览器标签页标题 `<title>` | 未处理，避免影响收藏与历史记录 |
+| 范围                                                                                               | 原因                                           |
+| ------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| `code` / `pre` / `kbd` / `samp` / `var` / `tt` / `data`，以及任何祖先含 `code`/`pre` 的元素                 | 代码、命令、diff 内容不能翻，翻了就打不开                      |
+| `.markdown-body`（README、Issue/PR 正文、评论正文）                                                        | 正文是阅读对象，翻译会破坏链接、表格、代码块；只在缺失时由 AI 兜底普通文本，不含正文 |
+| `.blob-code` / `.cm-editor` / `.CodeMirror` / `.diff-table` / `.diff-view` / `.react-code-lines` | 代码查看器与 diff                                  |
+| `.js-navigation-container` / `.react-tree-show-tree-items` / `.js-path-segment` / `.final-path`  | 文件树与路径，翻了会指错文件                               |
+| `.table-list` / `.pagination` / `.diffstat` / `.topic-tag` / `.Label` / `.float-right`           | 数值与状态标签，误译代价高（`Label` 本身还是组件类名）              |
+| `itemprop="name"` 的元素                                                                            | 仓库名、Issue/PR 标题等标识性文本，保持原样便于搜索和复制            |
+| `svg` / `math` / `iframe` / `object` / `template` / `noscript` / `script` / `style`              | 非可视文本或跨文档                                    |
+| Shadow DOM 内部（相对时间除外）                                                                            | `TreeWalker` 不进入 shadow root                 |
+| 跨域 iframe 内的文档                                                                                   | 浏览器同源策略                                      |
+| `title` 属性（悬停提示）、`img` 的 `alt`                                                                   | 目前只处理 `aria-label` 与 `placeholder`           |
+| CSS 伪元素 `content`、`canvas`、图片里的文字                                                                | 不是 DOM 文本节点，脚本无法改写                           |
+| 浏览器标签页标题 `<title>`                                                                               | 未处理，避免影响收藏与历史记录                              |
 
 ### 结构性限制
 
@@ -140,26 +140,22 @@ dict/zh-CN.json
 
 设置面板「界面词条」会同时出现几个数字，它们不是同一个口径，容易看着像「多出来一截」：
 
-| 显示 | 含义 |
-| --- | --- |
-| 内置 1656 条 | 脚本自带的离线兜底词条。`__comments-*`、`__dict-end` 之类的注释占位键不计数 |
-| 远端新增 677 条 | 仓库词库 2330 条里与内置**不重名**的部分；重名的 1653 条是覆盖内置，不累加 |
-| 词库 2333 条 | 1656 + 677，实际参与匹配的总条数 |
-| AI 记忆 N 条 | AI 翻过的句子会被记住以便复用（存本机），属于译文缓存，**不是词库**，不计入上面任何数字 |
+| 显示         | 含义                                                  |
+| ---------- | --------------------------------------------------- |
+| 内置 1656 条  | 脚本自带的离线兜底词条。`__comments-*`、`__dict-end` 之类的注释占位键不计数 |
+| 远端新增 677 条 | 仓库词库 2330 条里与内置**不重名**的部分；重名的 1653 条是覆盖内置，不累加       |
+| 词库 2333 条  | 1656 + 677，实际参与匹配的总条数                               |
+| AI 记忆 N 条  | AI 翻过的句子会被记住以便复用（存本机），属于译文缓存，**不是词库**，不计入上面任何数字     |
 
 AI 记忆随使用不断增长（按 F9 重译也会更新它），但它始终不进词库本体；清掉本机缓存后归零，不影响词库条数。统计口径可跑 `node tools/dict_stat.js` 核对。
 
 ### 词库规模（自动更新）
 
-<!-- dict-stat:start -->
-
-| 词库版本 | 远端词条 | 内置词条 | 实际可用合计 | 模式规则 |
-| --- | --- | --- | --- | --- |
+| 词库版本            | 远端词条   | 内置词条   | 实际可用合计 | 模式规则 |
+| --------------- | ------ | ------ | ------ | ---- |
 | `2026.11.08-r4` | 2882 条 | 1656 条 | 2885 条 | 24 条 |
 
 <sub>由 GitHub Actions 自动更新于 2026-11-08 15:23 UTC</sub>
-
-<!-- dict-stat:end -->
 
 <sub>上表由「词库统计」工作流每天自动写入，数字不用手改。</sub>
 
@@ -169,13 +165,13 @@ AI 记忆随使用不断增长（按 F9 重译也会更新它），但它始终�
 
 仓库有 5 条工作流，分工如下：
 
-| 工作流 | 什么时候跑 | 干什么 | 能不能改文件 |
-| --- | --- | --- | --- |
-| **词库质量检查** | 每次往 `dict/`、`tools/`、工作流目录推代码，或提 PR | 跑 `tools/dict_lint.js`：键格式（大小写/首尾空格/连续空格）、重复键、空译文、`count` 字段一致性、术语统一（如 workflow 必须译作「工作流」）、`patterns` 正则能否编译；结果写进 Job Summary，有错就红 | 否（只读） |
-| **词库自动续写** | 每天北京时间 12:00 | 从 `tools/candidates.txt` 里挑词库还没有的界面短语，交给 AI 翻译后补进 `dict/zh-CN.json`；写入后先跑一遍质量检查，不过就回滚不提交 | 是（只改词库） |
-| **词库 Issue 接收** | 自己人（OWNER/MEMBER/COLLABORATOR）开的 Issue 自动；其他人开的需要你打「词库贡献」标签；也可手动填编号触发 | 解析 Issue 正文里的 `原文 → 译文`，存成 `dict/contribs/contrib-issue-<编号>.json`，回帖说明收了几条 | 是（只加贡献文件） |
-| **词库贡献合并** | 每天北京时间 12:20，或你手动点 Run workflow | 把 `dict/contribs/*.json` 合并进正式词库（只加不改；定时任务永不覆盖），合并后跑质量检查，通过才提交并清理贡献文件、同步 README 数字，版本号 `-rN` +1 | 是（改正式词库 + README） |
-| **词库统计** | 每天北京时间 12:40，或 `dict/` 变动时 | 生成总数 / 与内置的重叠 / 键长分布等统计，写 Job Summary，并把上面那张「词库规模」表更新进 README | 是（只改 README 那个区块） |
+| 工作流             | 什么时候跑                                                                 | 干什么                                                                                                                                | 能不能改文件            |
+| --------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| **词库质量检查**      | 每次往 `dict/`、`tools/`、工作流目录推代码，或提 PR                                   | 跑 `tools/dict_lint.js`：键格式（大小写/首尾空格/连续空格）、重复键、空译文、`count` 字段一致性、术语统一（如 workflow 必须译作「工作流」）、`patterns` 正则能否编译；结果写进 Job Summary，有错就红 | 否（只读）             |
+| **词库自动续写**      | 每天北京时间 12:00                                                          | 从 `tools/candidates.txt` 里挑词库还没有的界面短语，交给 AI 翻译后补进 `dict/zh-CN.json`；写入后先跑一遍质量检查，不过就回滚不提交                                           | 是（只改词库）           |
+| **词库 Issue 接收** | 自己人（OWNER/MEMBER/COLLABORATOR）开的 Issue 自动；其他人开的需要你打「词库贡献」标签；也可手动填编号触发 | 解析 Issue 正文里的 `原文 → 译文`，存成 `dict/contribs/contrib-issue-<编号>.json`，回帖说明收了几条                                                        | 是（只加贡献文件）         |
+| **词库贡献合并**      | 每天北京时间 12:20，或你手动点 Run workflow                                       | 把 `dict/contribs/*.json` 合并进正式词库（只加不改；定时任务永不覆盖），合并后跑质量检查，通过才提交并清理贡献文件、同步 README 数字，版本号 `-rN` +1                                    | 是（改正式词库 + README） |
+| **词库统计**        | 每天北京时间 12:40，或 `dict/` 变动时                                            | 生成总数 / 与内置的重叠 / 键长分布等统计，写 Job Summary，并把上面那张「词库规模」表更新进 README                                                                      | 是（只改 README 那个区块） |
 
 每天的固定顺序是 **12:00 续写 → 12:20 合并贡献 → 12:40 统计**。统计放在最后，测的就是当天续写和合并之后的最终规模；三条依次错开 20 分钟，不会抢同一条提交。
 
@@ -203,14 +199,12 @@ AI 记忆随使用不断增长（按 F9 重译也会更新它），但它始终�
 - **时机**：每天**北京时间 0 点之后**首次打开任意页面时同步一次，24 小时内最多一次。
 - **为什么不是 0:00 准点**：浏览器会给后台标签页的定时器降频甚至冻结，脚本里挂一个「等到 0 点」的定时器并不可靠，而且页面没打开时脚本根本不在运行。所以采用「跨日首次访问即拉取」的等价实现。
 - **换源策略**：前两个源**同时发**，谁先返回有效词库用谁；只有它们都失败，才依次往下试。
-
-  | 顺序 | 源 | 说明 |
-  | --- | --- | --- |
-  | 1 | `raw.githubusercontent.com`（GitHub 原始地址） | 海外快，国内常不通 |
-  | 2 | `gh-proxy.com`（raw 反代） | 国内可直连，与第 1 个并发 |
-  | 3 | `testingcf.jsdelivr.net` | 前两个都失败才轮到 |
-  | 4 | `cdn.jsdelivr.net` | 最后兜底 |
-
+  | 顺序 | 源                                        | 说明             |
+  | -- | ---------------------------------------- | -------------- |
+  | 1  | `raw.githubusercontent.com`（GitHub 原始地址） | 海外快，国内常不通      |
+  | 2  | `gh-proxy.com`（raw 反代）                   | 国内可直连，与第 1 个并发 |
+  | 3  | `testingcf.jsdelivr.net`                 | 前两个都失败才轮到      |
+  | 4  | `cdn.jsdelivr.net`                       | 最后兜底           |
   单个源超时 8 秒；前两个并发，所以最坏情况约 8 + 24 秒，全程在后台跑，不阻塞首屏，也不打断正在进行的翻译。
 - **校验**：响应必须是以 `{` 开头的合法 JSON，且 `dict` 条目数 ≥ 100 —— 这一步专门挡掉反代返回的 HTML 错误页。
 - **失败处理**：全部源都失败时保留上一次的词库继续用，不会清空、不会报错弹窗，下一天再试。
@@ -227,11 +221,11 @@ AI 记忆随使用不断增长（按 F9 重译也会更新它），但它始终�
 
 词条库是社区一起长的，所以面板底部有一个可折叠的 **词条回传** 区块：
 
-| 步骤 | 说明 |
-| --- | --- |
-| 1. 开启采集 | 打开「采集未命中词条」开关并保存。之后词库没命中、靠 AI 或引擎翻出的**短文案**（≤80 字符、单行）会记在本机，最多 500 条 |
-| 2. 查看 / 复制 | 面板显示已采集条数；「复制清单」复制成 `原文 → 译文` 的纯文本 |
-| 3. 回传 | 有 Token 走「推送到 GitHub」；没 Token 走「提交 Issue」 |
+| 步骤         | 说明                                                                   |
+| ---------- | -------------------------------------------------------------------- |
+| 1. 开启采集    | 打开「采集未命中词条」开关并保存。之后词库没命中、靠 AI 或引擎翻出的**短文案**（≤80 字符、单行）会记在本机，最多 500 条 |
+| 2. 查看 / 复制 | 面板显示已采集条数；「复制清单」复制成 `原文 → 译文` 的纯文本                                   |
+| 3. 回传      | 有 Token 走「推送到 GitHub」；没 Token 走「提交 Issue」                            |
 
 两种回传方式：
 
@@ -244,6 +238,7 @@ AI 记忆随使用不断增长（按 F9 重译也会更新它），但它始终�
 
 为什么不让人直接写正式词库：去重、术语一致性、错译纠正都需要过眼，任何一条错的都会推给所有用户。所以贡献先进 `dict/contribs/` 队列（Issue 需打标才入队，推文件需仓库写权限），再交给定时任务批量合并——这样无 Token 的用户也有零门槛通道，不需要注册什么服务、也不需要脚本作者提供服务器。
 
+
 ### 合并规则
 
 1. 远端条目**覆盖**同名内置条目 —— 修错译、统一术语靠这条路。
@@ -255,13 +250,13 @@ AI 记忆随使用不断增长（按 F9 重译也会更新它），但它始终�
 
 **本次已做**
 
-| 项 | 说明 |
-| --- | --- |
-| 扩充词条 | 1654 → 1815 条（此轮 +161），此后由每日 AI 续写继续增长：Copilot / Models / Projects / Discussions / Packages / Security / Actions / 仓库设置 / 成员权限等新版界面用词 |
-| 模式规则 | 24 条，覆盖提交数、分支数、文件变更、增删行数、各类「X ago」、`X commits ahead of Y` |
-| 术语纠错 | 14 条显式覆盖，例如 `unresolve conversation`「未解决对话」→「取消解决对话」（语义反了）、`compare & pull request`「对比 & 拉取请求」→「比较并创建拉取请求」 |
-| 清理脏数据 | 剔除 33 条 `__comments*` 注释键、2 条空译文 |
-| 冲突保守处理 | 67 条与建议译法不一致的条目**保留旧值**，因为多数旧值更贴近 GitHub 官方中文（Star→星标、Request changes→请求更改），只改确有问题的 |
+| 项      | 说明                                                                                                                                    |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 扩充词条   | 1654 → 1815 条（此轮 +161），此后由每日 AI 续写继续增长：Copilot / Models / Projects / Discussions / Packages / Security / Actions / 仓库设置 / 成员权限等新版界面用词 |
+| 模式规则   | 24 条，覆盖提交数、分支数、文件变更、增删行数、各类「X ago」、`X commits ahead of Y`                                                                             |
+| 术语纠错   | 14 条显式覆盖，例如 `unresolve conversation`「未解决对话」→「取消解决对话」（语义反了）、`compare & pull request`「对比 & 拉取请求」→「比较并创建拉取请求」                            |
+| 清理脏数据  | 剔除 33 条 `__comments*` 注释键、2 条空译文                                                                                                      |
+| 冲突保守处理 | 67 条与建议译法不一致的条目**保留旧值**，因为多数旧值更贴近 GitHub 官方中文（Star→星标、Request changes→请求更改），只改确有问题的                                                   |
 
 **后续可继续做**
 
@@ -278,12 +273,12 @@ AI 记忆随使用不断增长（按 F9 重译也会更新它），但它始终�
 
 **读（同步词库）** 走 4 个源，前两个**同时发、谁先返回有效词库用谁**——GitHub 原始地址（海外快）与 `gh-proxy.com` 反代（国内快），谁也不等谁超时：
 
-| 顺序 | 源 | 说明 |
-| --- | --- | --- |
-| 1 | `raw.githubusercontent.com` | 官方原始地址 |
-| 2 | `gh-proxy.com` 反代 | 国内可直连，实测约 1 秒 |
-| 3 | `testingcf.jsdelivr.net` | jsDelivr，前两个都失败才轮到这里 |
-| 4 | `cdn.jsdelivr.net` | jsDelivr 备用域名 |
+| 顺序 | 源                           | 说明                   |
+| -- | --------------------------- | -------------------- |
+| 1  | `raw.githubusercontent.com` | 官方原始地址               |
+| 2  | `gh-proxy.com` 反代           | 国内可直连，实测约 1 秒        |
+| 3  | `testingcf.jsdelivr.net`    | jsDelivr，前两个都失败才轮到这里 |
+| 4  | `cdn.jsdelivr.net`          | jsDelivr 备用域名        |
 
 **写（回传词库）** 走 GitHub API，直连不通时自动换镜像：
 
@@ -298,6 +293,7 @@ AI 记忆随使用不断增长（按 F9 重译也会更新它），但它始终�
 **方式一：交给定时任务（默认，不用管）**
 
 每天北京时间 **12:20** 自动跑一次「词库贡献合并」，流程固定：
+
 1. 队列为空 → 直接结束，不会产生空提交；
 2. 有内容 → 合并进正式词库（**只加不改**，定时任务不接受 `--force`）；
 3. 合并后跑词库检查，不通过就 `git checkout` 回滚、不提交；
@@ -316,9 +312,9 @@ node tools/merge_contrib.js --force   # 需要覆盖同名条目时用（改错�
 # 确认无误后提交 dict/zh-CN.json 并推送
 ```
 
-> Issue 渠道的自动化（**打标才解析**）：用户提交 Issue 后不会立刻处理，维护者确认要收这条时给它打上「词库贡献」标签，`.github/workflows/dict-issue-intake.yml` 才会跑 `tools/issue_to_contrib.js` 解析正文——
-> 这样任何人开 Issue 都不会自动往仓库写文件；也可以在 Actions 页手动触发并填写 Issue 编号。解析规则：
-> 只认 `- 原文 → 译文` 单行；单条 Issue 上限 300 条、键与译文各 200 字符；含 HTML 标签、URL、代码块、以及中文→外文的反向条目一律跳过；解析结果写进 `dict/contribs/`，然后在 Issue 里回帖说明接收了几条、跳过几行。
+> Issue 渠道的自动化（**打标才解析**）：用户提交 Issue 后不会立刻处理，维护者确认要收这条时给它打上「词库贡献」标签，`.github/workflows/dict-issue-intake.yml` 才会跑 `tools/issue_to_contrib.js` 解析正文——  
+> 这样任何人开 Issue 都不会自动往仓库写文件；也可以在 Actions 页手动触发并填写 Issue 编号。解析规则：  
+> 只认 `- 原文 → 译文` 单行；单条 Issue 上限 300 条、键与译文各 200 字符；含 HTML 标签、URL、代码块、以及中文→外文的反向条目一律跳过；解析结果写进 `dict/contribs/`，然后在 Issue 里回帖说明接收了几条、跳过几行。  
 > 解析失败或没有可用词条时不会提交任何文件，只在 Issue 里说明，维护者仍可人工处理。
 
 ## AI 大模型设置
@@ -331,19 +327,19 @@ node tools/merge_contrib.js --force   # 需要覆盖同名条目时用（改错�
 
 面板里可填：
 
-| 字段 | 说明 |
-| --- | --- |
-| 启用 AI 翻译 | 默认开启。关闭后完全不请求大模型，全部走引擎链 |
-| 非简体中文页面自动翻译 | 默认开启。自动检测语种，非简体中文即翻译；关闭后只由 F9 触发 |
+| 字段            | 说明                                              |
+| ------------- | ----------------------------------------------- |
+| 启用 AI 翻译      | 默认开启。关闭后完全不请求大模型，全部走引擎链                         |
+| 非简体中文页面自动翻译   | 默认开启。自动检测语种，非简体中文即翻译；关闭后只由 F9 触发                |
 | 接口类型 provider | `nvidia` / `openai` / `builtin`（浏览器内置 AI，免 Key） |
-| 接口地址 baseUrl | OpenAI 兼容的 `/chat/completions` 地址 |
-| API Key | 大模型 Key，仅保存在本机 |
-| 模型名称 model | 例如 `nvidia/nemotron-3.5-super-vl-120b-a12b` |
-| 批量条数 | 每次请求翻译多少条 |
-| 每条最长字符 | 默认 600；超过的不交给 AI，走引擎链 |
-| 超时 | 请求超时毫秒 |
-| 推理模型关闭思考 | NVIDIA Nemotron 系列需要 |
-| 译文写入缓存 | 关闭则不缓存 |
+| 接口地址 baseUrl  | OpenAI 兼容的 `/chat/completions` 地址               |
+| API Key       | 大模型 Key，仅保存在本机                                  |
+| 模型名称 model    | 例如 `nvidia/nemotron-3.5-super-vl-120b-a12b`     |
+| 批量条数          | 每次请求翻译多少条                                       |
+| 每条最长字符        | 默认 600；超过的不交给 AI，走引擎链                           |
+| 超时            | 请求超时毫秒                                          |
+| 推理模型关闭思考      | NVIDIA Nemotron 系列需要                            |
+| 译文写入缓存        | 关闭则不缓存                                          |
 
 「界面词条」分区显示当前词条库版本、条目数、来源和上次同步时间，右侧「立即更新」可手动拉取（见 [界面词条库](#界面词条库)）。
 
@@ -355,21 +351,23 @@ node tools/merge_contrib.js --force   # 需要覆盖同名条目时用（改错�
 
 只提供**用户脚本**这一种形态，没有浏览器扩展版本，也不需要会命令行：先装一个脚本管理器，再点一次安装地址就完事。
 
-上架后 **Greasy Fork 脚本页是首选入口**（链接见 [发布地址](#发布地址)）；下面三个地址是 GitHub 直装备用，从这些地址安装的用户由脚本头 `@updateURL` 负责更新。
+**首选：Greasy Fork** —— [greasyfork.org/zh-CN/scripts/604410](https://greasyfork.org/zh-CN/scripts/604410)，点「安装此脚本」即可；从 Greasy Fork 安装的版本由它自己负责更新，不用碰 GitHub。
+
+下面三个地址是 GitHub 直装备用（打不开 Greasy Fork 时用），从这些地址安装的用户由脚本头 `@updateURL` 负责更新。
 
 ### 支持哪些脚本管理器
 
 脚本只用到 4 类 GM 接口，且在**存储**与**跨域**两处集中适配，所以主流管理器都能直接跑：
 
-| 脚本管理器 | 支持度 | 菜单在哪 | 备注 |
-| --- | --- | --- | --- |
-| 篡改猴 Tampermonkey | 完整 | 扩展图标 → 脚本名 | 同步存储，跨域不额外询问 |
-| 暴力猴 Violentmonkey | 完整 | 扩展图标 → 脚本名 | 首次访问新域名会弹一次授权，同意即可 |
-| 脚本猫 ScriptCat | 完整 | 脚本猫面板 → 脚本 → 菜单 | 国内可直连，不想装篡改猴就用它 |
-| AdGuard（桌面版） | 完整 | AdGuard 设置 → 扩展 | 顺带能拦广告 |
-| FireMonkey | 完整 | 扩展图标 | Firefox 上无篡改猴时的选择 |
-| Greasemonkey 4 | 可用 | 扩展图标 | 只有 Promise 接口，脚本启动时先预读配置再翻译 |
-| Safari「Userscripts」 | 基本可用 | 无菜单 | 用 `Alt+N` 打开设置；跨域请求可能被系统拦 |
+| 脚本管理器               |   | 支持度  | 菜单在哪            | 备注                          |
+| ------------------- | - | ---- | --------------- | --------------------------- |
+| 篡改猴 Tampermonkey    |   | 完整   | 扩展图标 → 脚本名      | 同步存储，跨域不额外询问                |
+| 暴力猴 Violentmonkey   |   | 完整   | 扩展图标 → 脚本名      | 首次访问新域名会弹一次授权，同意即可          |
+| 脚本猫 ScriptCat       |   | 完整   | 脚本猫面板 → 脚本 → 菜单 | 国内可直连，不想装篡改猴就用它             |
+| AdGuard（桌面版）        |   | 完整   | AdGuard 设置 → 扩展 | 顺带能拦广告                      |
+| FireMonkey          |   | 完整   | 扩展图标            | Firefox 上无篡改猴时的选择           |
+| Greasemonkey 4      |   | 可用   | 扩展图标            | 只有 Promise 接口，脚本启动时先预读配置再翻译 |
+| Safari「Userscripts」 |   | 基本可用 | 无菜单             | 用 `Alt+N` 打开设置；跨域请求可能被系统拦   |
 
 安装三步：
 
@@ -388,7 +386,7 @@ https://gh-proxy.com/https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Tr
 https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/AI-Web-Translation-Assistant.user.js
 ```
 
-3. 打开任意网页按 F9；装完先按 `Alt+N` 填一次模型与 Key（provider 选 `builtin` 可免 Key）。
+1. 打开任意网页按 F9；装完先按 `Alt+N` 填一次模型与 Key（provider 选 `builtin` 可免 Key）。
 
 装好后打开设置面板，底部**运行环境**一行会写明当前识别到的管理器、存储形态（同步 / 异步预读 / localStorage）和跨域通道。真出问题时，把这一行发出来就能定位，不用猜。
 
@@ -452,9 +450,9 @@ https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/AI
 
 <https://github.com/lengxiaobingege/AI-Web-Translation-Assistant>
 
-**用户安装**：Greasy Fork（脚本页链接发布后补到本节与安装章节）。从 Greasy Fork 安装时，它会按官方规则把 `@updateURL` / `@downloadURL` 改写成指向自己，更新不再经过国内打不开的 `raw.githubusercontent.com`；GitHub 直装用户仍走原地址，脚本头不需要为上架改动。
+**用户安装**：[Greasy Fork 脚本页 604410](https://greasyfork.org/zh-CN/scripts/604410)，安装与更新地址是 <https://update.greasyfork.org/scripts/604410/AI-Web-Translation-Assistant.user.js>。这个地址由 Greasy Fork 生成：它会按官方规则把 `@updateURL` / `@downloadURL` 改写成指向自己，更新不再经过国内打不开的 `raw.githubusercontent.com`；GitHub 直装用户仍走原地址，**源码里的这两行不需要为上架改动**。
 
-维护者操作步骤与官方规则逐条对照见 [Greasy Fork 上架手册](docs/GreasyFork上架.md)。按该规则核对：脚本约 221 KB（上限 2 MB）、全明文无压缩混淆、不引用外部可执行代码、六种 `@antifeature` 均不涉及、无 `@license`（上游未授权，不代声明）。
+维护者操作步骤与官方规则逐条对照见 [Greasy Fork 上架手册](docs/GreasyFork上架.md)。按该规则核对：脚本约 223 KB（上限 2 MB）、全明文无压缩混淆、不引用外部可执行代码、六种 `@antifeature` 均不涉及、无 `@license`（上游未授权，不代声明）。
 
 ## 许可
 

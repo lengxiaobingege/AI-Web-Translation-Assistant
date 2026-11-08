@@ -1,4 +1,4 @@
-/* 统计词库构成：内置 DICT / 远端 dict/github.zh-CN.json / 二者重叠，解释面板里「合计」的差额
+/* 统计词库构成：内置 DICT / 远端 dict/zh-CN.json / 二者重叠，解释面板里「合计」的差额
  * 用法：node tools/dict_stat.js
  */
 const fs = require('fs');
@@ -13,7 +13,7 @@ const keys = Object.keys(DICT);
 const isJunk = k => k.indexOf('__') === 0;   /* 生成器留下的注释占位，不命中任何文本 */
 const placeholder = keys.filter(isJunk);
 
-const remote = JSON.parse(fs.readFileSync(path.join(root, 'dict/github.zh-CN.json'), 'utf8'));
+const remote = JSON.parse(fs.readFileSync(path.join(root, 'dict/zh-CN.json'), 'utf8'));
 const rk = Object.keys(remote.dict || {});
 
 const norm = k => k.trim().toLowerCase().replace(/\s+/g, ' ');

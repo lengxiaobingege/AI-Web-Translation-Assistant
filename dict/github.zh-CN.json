@@ -2,10 +2,10 @@
  "schema": 1,
  "name": "github-i18n-zh-CN",
  "target": "zh-CN",
- "version": "2026.11.08-b7",
- "updatedAt": "2026-11-08T02:56:49.712Z",
- "note": "GitHub 界面汉化词库。键为小写、空格归一的英文原文；值为简体中文。2026.11.08-b7：新增 501 条高频界面词汇，并统一键格式、修正错译、统一 workflow 译法。由 tools/build_dict.js 生成，可直接手工编辑后提交。",
- "count": 2315,
+ "version": "2026.11.08-r1",
+ "updatedAt": "2026-11-08T05:13:33.354Z",
+ "note": "GitHub 界面汉化词库。键为小写、空格归一的英文原文；值为简体中文。本版由 GitHub Actions 自动补充 10 条（2026-11-08）。",
+ "count": 2325,
  "patterns": [
   {
    "re": "^([\\d,.]+)\\s+commits?$",
@@ -2430,6 +2430,16 @@
   "use this template": "使用此模板",
   "extend github": "拓展GitHub",
   "find tools to improve your workflow": "寻找改进工作流的工具",
-  "workflow disabled successfully.": "工作流已成功禁用。"
+  "workflow disabled successfully.": "工作流已成功禁用。",
+  "repository admins": "仓库管理员",
+  "manage topics": "管理主题",
+  "add topics": "添加主题",
+  "no description, website, or topics provided": "未提供描述、网站或主题",
+  "readme file": "README 文件",
+  "license file": "许可证文件",
+  "security policy file": "安全策略文件",
+  "issue template": "议题模板",
+  "pull request template": "拉取请求模板",
+  "funding": "资助"
  }
 }

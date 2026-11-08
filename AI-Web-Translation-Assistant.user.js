@@ -11,7 +11,7 @@
 // @homepageURL https://github.com/lengxiaobingege/AI-Web-Translation-Assistant
 // @supportURL  https://github.com/lengxiaobingege/AI-Web-Translation-Assistant/issues
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.4.11
+// @version     1.4.12
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @description Non-Chinese pages auto-translate to Chinese, F9 to retranslate anytime; AI model first with free engine fallback; built-in GitHub UI glossary replaces hits instantly at zero cost.
@@ -501,7 +501,7 @@ function remainingToTranslate(nodes) {
 function openContribIssue(cb) {
   var done = typeof cb === 'function' ? cb : function () { };
   if (!Object.keys(contribLoad()).length) {
-    done('本地没有采集到的词条（先在设置面板「词库回传」开启采集）', 'err');
+    done('本地没有采集到的词条（先在设置面板「词条回传」开启采集）', 'err');
     return;
   }
   if (contribCfg.token) {
@@ -785,7 +785,7 @@ async function runPage(nodes) {
     }
     trCache[item.key] = translated;
     cacheDirty = true;
-    contribRecord(item.text, translated);   /* 词库回传采集（默认关闭） */
+    contribRecord(item.text, translated);   /* 词条回传采集（默认关闭） */
     ok++;
   }
 
@@ -3072,7 +3072,7 @@ function aiComplete(nodes, done) {
           if (!t || t === b[k]) continue;
           if (!applyOne(normKey(b[k]), t)) continue;
           if (aiCfg.cache) { aiCache[normKey(b[k])] = t; DICT[normKey(b[k])] = t; }
-          contribRecord(b[k], t);          /* 词库回传采集（默认关闭） */
+          contribRecord(b[k], t);          /* 词条回传采集（默认关闭） */
           ok++;
         }
       }
@@ -3201,7 +3201,7 @@ function closeTranslation() {
 }
 
 /* ==================================================================
- * 词库回传：词库没翻到、靠 AI/引擎翻出的短文案采集到本机，再回传仓库
+ * 词条回传：词条库没翻到、靠 AI/引擎翻出的短文案采集到本机，再回传仓库
  *   - 有仓库写权限的 Token → 直接推送为 dict/contribs/ 下的 JSON（Contents API）
  *   - 没有 Token → 生成预填的 GitHub Issue 链接，由维护者合并进正式词库
  *   - 采集默认关闭；只记录 ≤80 字符的单行短文案，仅存本机
@@ -3293,7 +3293,7 @@ function utf8ToB64(s) {
 /* 把本地采集的词条推送为仓库 dict/contribs/contrib-<时间戳>.json */
 function contribPush(cb) {
   var done = typeof cb === 'function' ? cb : function () { };
-  if (!contribCfg.token) { done({ ok: false, reason: '请先在设置面板「词库回传」里填 GitHub Token' }); return; }
+  if (!contribCfg.token) { done({ ok: false, reason: '请先在设置面板「词条回传」里填 GitHub Token' }); return; }
   var hits = contribLoad();
   var n = Object.keys(hits).length;
   if (!n) { done({ ok: false, reason: '本地没有待上传的采集词条' }); return; }
@@ -3762,7 +3762,7 @@ function openAISettings() {
     var env = f('envline');
     if (env) env.textContent = envSummary();
   }
-  /* ---- 词库回传 ---- */
+  /* ---- 词条回传 ---- */
   function renderContribInfo() {
     var el = f('contribinfo');
     if (!el) return;
@@ -3951,7 +3951,7 @@ try {
     GM_registerMenuCommand('立即更新词库', updateDictManual);
     GM_registerMenuCommand('上传词库增量到 GitHub', function () {
       var n = Object.keys(contribLoad()).length;
-      if (!n) { toast('本地没有采集到的词条（在设置面板「词库回传」开启采集）'); return; }
+      if (!n) { toast('本地没有采集到的词条（在设置面板「词条回传」开启采集）'); return; }
       toast('正在上传 ' + n + ' 条采集词条…');
       contribPush(function (r) {
         toast(r.ok ? '已上传 ' + r.count + ' 条 → ' + r.path : '上传失败：' + r.reason);

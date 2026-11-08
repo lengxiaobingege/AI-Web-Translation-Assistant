@@ -452,7 +452,7 @@ https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/AI
 
 **用户安装**：[Greasy Fork 脚本页 604410](https://greasyfork.org/zh-CN/scripts/604410)，安装与更新地址是 <https://update.greasyfork.org/scripts/604410/AI-Web-Translation-Assistant.user.js>。这个地址由 Greasy Fork 生成：它会按官方规则把 `@updateURL` / `@downloadURL` 改写成指向自己，更新不再经过国内打不开的 `raw.githubusercontent.com`；GitHub 直装用户仍走原地址，**源码里的这两行不需要为上架改动**。
 
-维护者操作步骤与官方规则逐条对照见 [Greasy Fork 上架手册](docs/GreasyFork上架.md)。按该规则核对：脚本约 223 KB（上限 2 MB）、全明文无压缩混淆、不引用外部可执行代码、六种 `@antifeature` 均不涉及、无 `@license`（上游未授权，不代声明）。
+按 Greasy Fork 官方规则核对：脚本约 223 KB（上限 2 MB）、全明文无压缩混淆、不引用外部可执行代码、六种 `@antifeature` 均不涉及、无 `@license`（上游未授权，不代声明）。
 
 ## 许可
 
@@ -460,4 +460,4 @@ https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/AI
 
 脚本头部、仓库与 Greasy Fork 发布页**都不填写 `@license` / 许可字段**——合并脚本含两份未授权上游代码，无权对其整体声明许可。你在本仓库里找不到 LICENSE 文件，这是有意为之，不是遗漏。详见 [来源与许可说明](仓库说明.md)。
 
-Greasy Fork 的规则要求脚本遵守他人版权，本站已在脚本页显著披露上游归属与「不代授权」；但两个上游无 LICENSE 仍是未消除的长期风险，评估与可选做法见 [上架手册](docs/GreasyFork上架.md) 第七节。
+Greasy Fork 的规则要求脚本遵守他人版权，本站已在脚本页显著披露上游归属与「不代授权」；两个上游无 LICENSE 仍是未消除的长期风险。

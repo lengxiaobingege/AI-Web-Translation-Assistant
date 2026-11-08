@@ -4,6 +4,8 @@
 //           - https://github.com/k1995/github-i18n-plugin —— 界面词条（UI 文案）与替换规则
 //           - https://github.com/syhyz1990/translate —— 整页翻译引擎链
 //           来源项目的代码、词条及相关权益归各自原作者所有，本脚本仅包含合并与二创新增内容。
+//           引用基准：两个上游仓库默认分支的源码快照（抓取于 2026-11-06），
+//           以内嵌方式合并改编，未使用 @require 等外部代码引用。
 //           两个上游仓库均未声明开源许可（无 LICENSE 文件），本脚本不代其授权，
 //           也不对合并后的整体声明 MIT 等许可；详见 README「许可」章节。
 // @name        AI-Web-Translation-Assistant
@@ -13,11 +15,11 @@
 // @homepageURL https://github.com/lengxiaobingege/AI-Web-Translation-Assistant
 // @supportURL  https://github.com/lengxiaobingege/AI-Web-Translation-Assistant/issues
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.4.16
+// @version     1.4.17
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
-// @description Non-Chinese pages auto-translate to Chinese, F9 to retranslate anytime; AI model first with free engine fallback; one shared UI glossary works on every site, replacing hits instantly at zero cost.
-// @description:zh-CN 非简体中文网页自动翻译成中文，F9 随时重译；AI 大模型优先，失败自动回退免费引擎链；内置通用界面词条库，所有网站共用，命中直接替换、不花额度。
+// @description Non-Chinese pages auto-translate to Chinese, F9 to retranslate anytime; AI model first with free engine fallback; one shared UI glossary works on every site, replacing hits instantly at zero cost; optional glossary contribution is off by default.
+// @description:zh-CN 非简体中文网页自动翻译成中文，F9 随时重译；AI 大模型优先，失败自动回退免费引擎链；内置通用界面词条库，所有网站共用，命中直接替换、不花额度；可选的词条回传默认关闭。
 // @tag        翻译
 // @tag        AI
 // @tag        效率工具

@@ -9,7 +9,7 @@
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.4.5
+// @version     1.4.6
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @description 合并版：自动检测页面语言，非简体中文自动翻译（英文/日文/韩文/德文等，繁体转简体），F9 可随时手动重译；AI 大模型优先、不可用时回退引擎链。
@@ -3068,7 +3068,7 @@ function contribIssueURL() {
   var keys = Object.keys(hits);
   var n = keys.length;
   var list = keys.slice(0, 120).map(function (k) { return '- ' + k + ' → ' + hits[k]; });
-  var body = '以下词条在翻译时词库未命中，由用户脚本自动采集（共 ' + n + ' 条' +
+  var body = '<!-- ghx-contrib -->\n以下词条在翻译时词库未命中，由用户脚本自动采集（共 ' + n + ' 条' +
     (n > 120 ? '，此处列出前 120 条' : '') + '），请审核后合并进 dict/github.zh-CN.json：\n\n' + list.join('\n');
   return 'https://github.com/' + contribCfg.repo.replace(/^\/+|\/+$/g, '') +
     '/issues/new?title=' + encodeURIComponent('词库补充：未命中词条 ' + n + ' 条') +

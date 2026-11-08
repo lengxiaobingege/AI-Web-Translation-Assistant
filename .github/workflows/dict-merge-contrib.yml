@@ -1,9 +1,15 @@
 name: 词库贡献合并
 
-# 维护者手动触发：把 dict/contribs/*.json（用户脚本回传的词条）合并进正式词库。
-# 只加不改是默认行为；需要覆盖已有条目时把 force 设为 true。
-# 触发运行即视为人工审核通过，合并结果直接提交到 main。
+# 把 dict/contribs/*.json（用户脚本回传的词条）合并进正式词库。
+# 触发方式：
+#   1) 每天北京时间 12:40（UTC 04:40）自动跑一次 —— 定时任务永远只加不改；
+#   2) 维护者手动 Run workflow —— 需要覆盖已有条目时把 force 设为 true。
+# 队列里的贡献都已经过一道人工闸门（Issue 打标 / 仅仓库写权限才能推 contribs），
+# 所以定时合并是安全的；合并后必跑词库检查，不过就放弃提交。
 on:
+  schedule:
+    # 每天北京时间 12:40（UTC 04:40）；排在续写 12:00、统计 12:20 之后
+    - cron: '40 4 * * *'
   workflow_dispatch:
     inputs:
       force:
@@ -46,7 +52,8 @@ jobs:
             echo "::notice::dict/contribs 下没有待合并的贡献文件"
           else
             ARGS=""
-            if [ "${{ github.event.inputs.force }}" = "true" ]; then ARGS="--force"; fi
+            # 定时任务不接受 force：无人值守时绝不覆盖已有条目
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.force }}" = "true" ]; then ARGS="--force"; fi
             node tools/merge_contrib.js ${ARGS}
           fi
 
@@ -66,20 +73,52 @@ jobs:
             echo "ok=true" >> $GITHUB_OUTPUT
           fi
 
+      # GITHUB_TOKEN 的提交不会触发其他工作流，所以 README 数字必须在这里一起改，
+      # 否则要等第二天 12:20 的统计才会追平。
+      - name: 同步 README 统计
+        if: steps.lint.outputs.ok == 'true'
+        run: |
+          node tools/dict_report.js --json > report.json
+          node -e '
+          const fs = require("fs");
+          const r = require("./report.json");
+          const p = "README.md";
+          if (!fs.existsSync(p)) { console.log("无 README，跳过"); process.exit(0); }
+          const src = fs.readFileSync(p, "utf8");
+          const start = "<!-- dict-stat:start -->";
+          const end = "<!-- dict-stat:end -->";
+          if (!src.includes(start) || !src.includes(end)) { console.log("README 缺少统计标记，跳过"); process.exit(0); }
+          const block = [
+            start,
+            "",
+            "| 词库版本 | 远端词条 | 内置词条 | 实际可用合计 | 模式规则 |",
+            "| --- | --- | --- | --- | --- |",
+            "| `" + r.version + "` | " + r.actual + " 条 | " + r.builtin + " 条 | " + r.totalEffective + " 条 | " + r.patterns + " 条 |",
+            "",
+            "<sub>由 GitHub Actions 自动更新于 " + new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC</sub>",
+            "",
+            end,
+          ].join("\n");
+          const out = src.replace(new RegExp(start + "[\\s\\S]*?" + end), block);
+          if (out === src) { console.log("README 数字无变化"); process.exit(0); }
+          fs.writeFileSync(p, out, "utf8");
+          console.log("README 已更新");
+          '
+
       - name: 提交并推送
         if: steps.lint.outputs.ok == 'true'
         run: |
-          if git diff --quiet -- dict/; then
-            echo "::notice::词库没有变化，无需提交"
+          if git diff --quiet -- dict/ README.md; then
+            echo "::notice::词库与 README 都没有变化，无需提交"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           NEW_COUNT=$(node -e 'console.log(require("./dict/github.zh-CN.json").count)')
           NEW_VERSION=$(node -e 'console.log(require("./dict/github.zh-CN.json").version)')
-          git add -A dict/
+          git add dict/ README.md
           git commit -m "合并用户贡献：${{ steps.base.outputs.count }} → ${NEW_COUNT} 条（${NEW_VERSION}）" \
-                     -m "由维护者手动触发的词库贡献合并，来源 dict/contribs/，已清理对应贡献文件。"
+                     -m "来源 dict/contribs/，已通过词库检查并清理对应贡献文件；README 统计同步更新。"
           git push origin HEAD:main
           echo "::notice::已提交：${NEW_COUNT} 条（${NEW_VERSION}），所有用户将在每天 0 点后自动同步"
 
@@ -88,9 +127,13 @@ jobs:
         run: |
           node tools/dict_report.js --out report.md 2>/dev/null || true
           if [ -f report.md ]; then cat report.md >> $GITHUB_STEP_SUMMARY; fi
+          MODE="只加不改"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.force }}" = "true" ]; then MODE="覆盖已有条目（--force）"; fi
           {
             echo ""
             echo "---"
+            echo "- 触发方式：${{ github.event_name }}"
             echo "- 合并前：${{ steps.base.outputs.count }} 条（${{ steps.base.outputs.version }}），待处理贡献文件 ${{ steps.base.outputs.files }} 个"
-            echo "- 模式：${{ github.event.inputs.force == 'true' && '覆盖已有条目（--force）' || '只加不改' }}"
+            echo "- 模式：${MODE}"
+            echo "- 自检：${{ steps.lint.outputs.ok == 'true' && '通过' || '无待合并内容 / 未通过已放弃' }}"
           } >> $GITHUB_STEP_SUMMARY

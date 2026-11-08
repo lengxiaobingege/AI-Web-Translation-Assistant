@@ -13,6 +13,7 @@ import base64
 import json
 import os
 import pathlib
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -24,8 +25,7 @@ BRANCH = "main"
 API = "https://api.github.com"
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-# 公开仓库禁止出现的敏感串
-FORBIDDEN = ("nvapi-", "ghp_", "gho_", "github_pat_", "sk-")
+# 公开仓库禁止出现的敏感串：现由 scan_public_safety() 按「前缀 + 密钥长度」正则判定
 
 
 def load_token():
@@ -62,11 +62,21 @@ def scan_public_safety(path: pathlib.Path):
     if path.suffix.lower() in (".png", ".jpg", ".jpeg", ".ico", ".webp"):
         return
     if path.name == "push_repo.py":
-        return  # 本脚本内的 FORBIDDEN 元组只是检测规则字符串，本身不是密钥
+        return  # 本脚本内的规则字符串本身不是密钥
     text = path.read_text(encoding="utf-8", errors="ignore")
-    hits = [k for k in FORBIDDEN if k in text]
+    # 只认「真实密钥形态」：前缀后面跟着一长串密钥字符。
+    # 早期用裸子串匹配，会误伤脱敏代码本身（如 re.sub 里的 sk-[A-Za-z...] 与输出占位 sk-***），
+    # 把防护代码当成泄露拦下来，所以改成按长度校验。
+    risky = [
+        (r"nvapi-[A-Za-z0-9_\-]{16,}", "nvapi-"),
+        (r"ghp_[A-Za-z0-9]{20,}", "ghp_"),
+        (r"gho_[A-Za-z0-9]{20,}", "gho_"),
+        (r"github_pat_[A-Za-z0-9_]{20,}", "github_pat_"),
+        (r"sk-[A-Za-z0-9_\-]{24,}", "sk-"),
+    ]
+    hits = [name for pat, name in risky if re.search(pat, text)]
     if hits:
-        raise SystemExit(f"[拒绝] {path.name} 含敏感串 {hits}，公开仓库不能推送")
+        raise SystemExit(f"[拒绝] {path.name} 含疑似密钥 {hits}，公开仓库不能推送")
 
 
 def push_file(local: pathlib.Path, message: str):

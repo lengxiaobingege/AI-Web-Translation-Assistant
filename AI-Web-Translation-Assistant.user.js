@@ -1,18 +1,21 @@
 // ==UserScript==
-// 作者（Authors）：lengxiaobingege（https://github.com/lengxiaobingege）与 WorkBuddy，二者共同编写。
-// 二创说明：本脚本为二次创作，由上述作者合并改编完成。
-//           基于以下两个独立项目的脚本合并改编：
-//             - https://github.com/k1995/github-i18n-plugin（GitHub 汉化部分）
-//             - https://github.com/syhyz1990/translate（超级翻译助手部分）
-//           来源脚本及词库等相关权利归原作者所有，本脚本仅包含合并与二创新增内容。
+// 作者：lengxiaobingege（https://github.com/lengxiaobingege）与 WorkBuddy 共同编写。
+// 二创说明：本脚本由上述作者合并改编而成，基于以下两个独立项目：
+//           - https://github.com/k1995/github-i18n-plugin —— 界面词条（UI 文案）与替换规则
+//           - https://github.com/syhyz1990/translate —— 整页翻译引擎链
+//           来源项目的代码、词条及相关权益归各自原作者所有，本脚本仅包含合并与二创新增内容。
 // @name        AI-Web-Translation-Assistant
-// @name:zh-CN  AI网页翻译助手
+// @name:zh-CN  AI 网页翻译助手
+// @name:en     AI Web Translation Assistant
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant
+// @homepageURL https://github.com/lengxiaobingege/AI-Web-Translation-Assistant
+// @supportURL  https://github.com/lengxiaobingege/AI-Web-Translation-Assistant/issues
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.4.9
+// @version     1.4.10
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
-// @description 合并版：自动检测页面语言，非简体中文自动翻译（英文/日文/韩文/德文等，繁体转简体），F9 可随时手动重译；AI 大模型优先、不可用时回退引擎链。
+// @description Non-Chinese pages auto-translate to Chinese, F9 to retranslate anytime; AI model first with free engine fallback; built-in GitHub UI glossary replaces hits instantly at zero cost.
+// @description:zh-CN 非简体中文网页自动翻译成中文，F9 随时重译；AI 大模型优先，失败自动回退免费引擎链；内置 GitHub 界面词条，命中直接替换、不花额度。
 // @icon       data:image/png;base64,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
 // @match       *://*/*
 // @run-at      document-idle
@@ -42,20 +45,24 @@
 // ==/UserScript==
 
 /*
- * ============================ 保留的功能 ============================
- * A. 超级翻译助手（修复版 1.2.0）
- *    Bing -> MyMemory -> Google 引擎链（含 Bing 鉴权失败强制刷新重试、
- *    上次成功引擎优先）、guessLang 源语言粗判、splitText 长文本分段、
- *    各引擎长度上限。源语言默认 auto，目标语言默认简体中文 zh-CN（CFG 可改）。
- *    适用 GitHub/gist 以外的整页翻译；只作兜底——AI 不可用、请求失败或文本超出
- *    AI 处理范围（超长段落）时才会被调用。
- * B. GitHub 汉化插件（加固版 v1.2.0）
- *    内联 1654 条词库（离线兜底）+ 24 条数量/时间模式规则 + CSS 规则、
- *    原生 DOM 精确/拆分翻译、input placeholder / value / aria-label、
- *    相对时间中文化、代码/文件名/路径等排除规则。
- *    远端词库（1815 条）每天从仓库同步一次，覆盖同名条目并追加规则。
- *    仅 github.com / gist.github.com 生效，目标语言固定简体中文。
- *    已知不覆盖范围见文件末尾「汉化覆盖面」注释与 README。
+ * ========================= 这个脚本做什么 =========================
+ * 通用整页翻译：任何站点，非简体中文页面自动翻成中文，F9 随时重译。
+ * 三层按优先级串行，前一层能解决就不麻烦后一层：
+ *
+ * A. 界面词条（本地词库，零网络、零额度）
+ *    内置 1656 条界面文案 + 24 条数量/时间模式规则 + CSS 规则；
+ *    精确匹配与拆词匹配并用，覆盖按钮、导航、占位符、aria-label、相对时间，
+ *    自动排除代码块、文件名、路径、仓库名等不该翻的内容。
+ *    词条以 GitHub 界面为主，仅 github.com / gist.github.com 生效；
+ *    其它站点跳过这一层，直接进 AI。
+ *
+ * B. AI 大模型（所有站点的主力路径）
+ *    待译文本按批送给配置好的模型（默认 20 条/批），译文落缓存复用；
+ *    提示词带页面标题与站点上下文，按「中文网站原生文案」的标准翻。
+ *
+ * C. 免费引擎链（兜底，不填 Key 也能用）
+ *    Bing → MyMemory → Google；含 Bing 鉴权失败自动刷新重试、上次成功引擎优先、
+ *    长文本分段、各引擎长度上限。AI 不可用、请求失败或文本超长时才走这里。
  *
  * ======================= 触发行为（自动 + F9） =======================
  *   1) 自动：页面就绪后自动检测页面主语言，只要不是简体中文就翻译成简体中文
@@ -69,7 +76,7 @@
  *   （DOMContentLoaded 监听只用于启动自动探测，不读页面文本）
  *   设置入口只在篡改猴菜单里（「AI 翻译设置」），页面内不注入任何常驻按钮。
  *   一次 TreeWalker 收集文本节点（共享给两个模块，避免重复遍历），按站点分流：
- *     GitHub/gist -> 词库汉化 + 属性 + 相对时间 + CSS 规则 -> AI 批量翻译剩余
+ *     GitHub/gist -> 词条替换 + 属性 + 相对时间 + CSS 规则 -> AI 批量翻译剩余
  *                    文本 -> 有批次失败时引擎链兜底。
  *     其它站点   -> AI 批量翻译优先；AI 不可用 / 部分失败 / 文本超长时，
  *                    剩余的走引擎链（去重 + 并发 + 译文缓存 + 节点上限）。
@@ -79,7 +86,7 @@
  *   入口（仅配置，不触发翻译）：篡改猴菜单命令「AI 翻译设置」。
  *   页面内不注入任何按钮/悬浮元素，避免在每网站上遮挡页面内容。
  *   面板（Shadow DOM，隔离 GitHub 样式）为居中卡片 + 遮罩，按「运行方式 / 接口 /
- *   参数 / 汉化词库」四段分组，开关项用拨动开关；关闭方式：× / Esc / 点遮罩。
+ *   参数 / 界面词条」四段分组，开关项用拨动开关；关闭方式：× / Esc / 点遮罩。
  *   可填：provider / baseUrl / API Key（可点「显示」查看）/ model /
  *   batchSize / maxChars / timeout / thinkingOff / cache。
  *   保存到本机篡改猴存储（键名 ghx2_ai_settings），F9 执行时读取；
@@ -93,13 +100,14 @@
  *   自动：每天北京时间 0 点之后的首次访问同步一次。浏览器脚本无法在 0:00 主动
  *         唤醒（后台标签的定时器会被节流），因此实现为「跨日首次打开页面时拉取」，
  *         24 小时内最多一次；不阻塞首屏，也不打断正在进行的翻译。
- *   换源：GitHub 原始地址 → testingcf/cdn.jsDelivr → jsd.onmicrosoft.cn → ghfast
- *         共 5 个源依次尝试，任一个通过校验即停止；全部失败则继续用上次的词库。
+ *   换源：前两个源并发——GitHub 原始地址（海外快）与 gh-proxy 反代（国内快），
+ *         谁先返回有效词条用谁，不必等被墙的源超时；都失败再依次试
+ *         testingcf.jsdelivr.net、cdn.jsdelivr.net；全部失败则继续用上次的词条。
  *   校验：必须是以 { 开头的合法 JSON、dict 条目数 ≥ 100（挡掉反代 HTML 错误页）。
  *   缓存：合格的响应写入本机（ghx2_dict_remote / ghx2_dict_meta），离线可用。
- *   合并：远端条目覆盖同名内置条目并写入词库基线（F9 重译不会清掉），
+ *   合并：远端条目覆盖同名内置条目并写入词条基线（F9 重译不会清掉），
  *         patterns 与 cssRules 去重后追加。
- *   手动：篡改猴菜单「立即更新词库」，或设置面板「汉化词库 → 立即更新」。
+ *   手动：篡改猴菜单「立即更新词库」，或设置面板「界面词条 → 立即更新」。
  *
  * ==================== 需人工确认的限制 ====================
  *  1) 图标为本项目自绘的原创图形（几何字母 A + 三条文字线），256x256 PNG、
@@ -131,13 +139,13 @@ var CFG = {
   pageNodeLimit: 300,           /* 整页机翻最多处理的文本节点数 */
   concurrency: 3,               /* 整页机翻并发数 */
   scanNodeLimit: 2500,          /* 单次 TreeWalker 收集上限 */
-  /* B GitHub 汉化 */
-  githubLang: 'zh-CN',          /* 设为 'off' 可关闭 GitHub 汉化 */
+  /* B 界面词条（以 GitHub 界面为主） */
+  githubLang: 'zh-CN',          /* 设为 'off' 可关闭界面词条替换 */
   /* C 词库在线更新：默认源在 GitHub 仓库，按顺序逐个尝试，成功即止 */
   dict: {
     enabled: true,
     daily: true,                /* 每天（北京时间 0 点起）首次访问时同步一次 */
-    timeout: 8000,              /* 单个源的超时，5 个源最坏约 40s，全部在后台跑 */
+    timeout: 8000,              /* 单个源超时 8s；前两个并发，最坏约 8+24s，全在后台跑 */
     minEntries: 100             /* 条目数低于此值视为无效响应（挡掉反代错误页） */
   },
   dictSources: [
@@ -215,7 +223,7 @@ function xhr(opts) {
 /* 唯一的提示条 */
 function toast(msg) {
   var d = document.createElement('div');
-  d.textContent = '[F9 汉化/翻译] ' + msg;
+  d.textContent = '[F9 翻译] ' + msg;
   d.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483647;background:#24292f;color:#fff;padding:10px 14px;border-radius:8px;font:13px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.3);max-width:380px;';
   document.body.appendChild(d);
   setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 4200);
@@ -268,7 +276,7 @@ function shouldSkipElement(el) {
   return false;
 }
 
-/* 唯一的文本节点遍历：F9 时跑一次，结果共享给汉化 / AI 补译 / 整页机翻 */
+/* 唯一的文本节点遍历：F9 时跑一次，结果共享给词条替换 / AI 补译 / 整页机翻 */
 function collectTextNodes(root) {
   var out = [];
   try {
@@ -672,7 +680,7 @@ return { translateText: translateText, runPage: runPage };
 
 
 /* ==================================================================
- * 模块 B：GitHub 汉化插件（加固版 v1.2.0）—— 词库 + CSS + AI 补译
+ * 模块 B：界面词条库（以 GitHub 界面为主）—— 词条 + CSS 规则 + AI 补译
  * 独立作用域；去掉了自动启动、MutationObserver、设置面板与全部菜单命令。
  * ================================================================== */
 var I18n = (function () {
@@ -2838,7 +2846,7 @@ function aiSaveCache() {
   try { gmSet(AI_CACHE_KEY, JSON.stringify(aiCache)); } catch (e) { }
 }
 
-/* ---- F9 调度入口 1：词库汉化（复用统一收集到的文本节点，不重复遍历） ---- */
+/* ---- F9 调度入口 1：词条替换（复用统一收集到的文本节点，不重复遍历） ---- */
 function applyDict(nodes, root) {
   if (CFG.githubLang === 'off') return 0;
   var n = 0;
@@ -3472,7 +3480,7 @@ function openAISettings() {
               '<div class="switch-txt"><b>译文写入缓存</b><i>同一句第二次出现直接命中，不重复请求</i></div>' +
               '<label class="sw"><input type="checkbox" id="cache"><span></span></label>' +
             '</div>' +
-            '<div class="sec-t">汉化词库</div>' +
+            '<div class="sec-t">界面词条</div>' +
             '<div class="dict-row">' +
               '<div class="dict-info" id="dictinfo">读取中…</div>' +
               '<button class="btn sm" id="dictupd" type="button" title="每天北京时间 0 点后首次打开自动同步一次；GitHub 原始地址与 gh-proxy 反代同时发（谁先到用谁），失败再依次换 jsDelivr 两个域名">立即更新</button>' +
@@ -3480,7 +3488,7 @@ function openAISettings() {
             '<div class="dict-sub" id="dictsub"></div>' +
           '</div>' +
           '<details class="sec fold" id="contribfold">' +
-            '<summary class="sec-t">词库回传<span class="fold-tip">采集未命中词条，回传 GitHub</span></summary>' +
+            '<summary class="sec-t">词条回传<span class="fold-tip">采集未命中词条，攒够回传词条库</span></summary>' +
             '<div class="switch-row tight">' +
               '<div class="switch-txt"><b>采集未命中词条</b><i>词库没翻到、靠 AI / 引擎翻出的短文案记录在本机，默认关闭</i></div>' +
               '<label class="sw"><input type="checkbox" id="contrib"><span></span></label>' +
@@ -3808,7 +3816,7 @@ async function runAll(source) {
         (CFG.githubFallback === 'onFailure' && stat.failed > 0);
       var tr = { translated: 0, failed: 0, skipped: true };
       if (needFallback) tr = await Trans.runPage(remainingToTranslate(nodes));
-      toast('GitHub 汉化：词库 ' + dictHits + ' 处，AI ' + stat.ok + ' 条' +
+      toast('界面词条：词库 ' + dictHits + ' 处，AI ' + stat.ok + ' 条' +
         (stat.failed ? '（失败 ' + stat.failed + ' 批）' : '') +
         '，引擎兜底 ' + tr.translated + ' 条');
     } else {

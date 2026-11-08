@@ -1,9 +1,0 @@
-{
-  "schema": 1,
-  "from": "issue",
-  "issue": 2,
-  "hits": {
-    "label gate test alpha": "打标测试甲",
-    "label gate test beta": "打标测试乙"
-  }
-}

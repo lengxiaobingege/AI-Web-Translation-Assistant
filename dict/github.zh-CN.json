@@ -2,10 +2,10 @@
  "schema": 1,
  "name": "github-i18n-zh-CN",
  "target": "zh-CN",
- "version": "2026.11.08-r1",
- "updatedAt": "2026-11-08T05:13:33.354Z",
- "note": "GitHub 界面汉化词库。键为小写、空格归一的英文原文；值为简体中文。本版由 GitHub Actions 自动补充 10 条（2026-11-08）。",
- "count": 2325,
+ "version": "2026.11.08-r2",
+ "updatedAt": "2026-11-08T10:36:37.911Z",
+ "note": "GitHub 界面汉化词库。键为小写、空格归一的英文原文；值为简体中文。本版由 GitHub Actions 自动补充 5 条（2026-11-08）。",
+ "count": 2330,
  "patterns": [
   {
    "re": "^([\\d,.]+)\\s+commits?$",
@@ -2440,6 +2440,11 @@
   "security policy file": "安全策略文件",
   "issue template": "议题模板",
   "pull request template": "拉取请求模板",
-  "funding": "资助"
+  "funding": "资助",
+  "citation file": "引用文件",
+  "dev container": "开发容器",
+  "gitignore template": "gitignore 模板",
+  "add a license": "添加许可证",
+  "download directory": "下载目录"
  }
 }

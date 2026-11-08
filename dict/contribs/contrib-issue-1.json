@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "from": "issue",
+  "issue": 1,
+  "hits": {
+    "smoke test entry one": "冒烟测试词条一",
+    "smoke test entry two": "冒烟测试词条二"
+  }
+}

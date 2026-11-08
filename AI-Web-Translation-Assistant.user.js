@@ -11,7 +11,7 @@
 // @homepageURL https://github.com/lengxiaobingege/AI-Web-Translation-Assistant
 // @supportURL  https://github.com/lengxiaobingege/AI-Web-Translation-Assistant/issues
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.4.10
+// @version     1.4.11
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @description Non-Chinese pages auto-translate to Chinese, F9 to retranslate anytime; AI model first with free engine fallback; built-in GitHub UI glossary replaces hits instantly at zero cost.
@@ -23,7 +23,12 @@
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getValue
 // @grant       GM_setValue
+// @grant       GM_listValues
 // @grant       GM_registerMenuCommand
+// @grant       GM.xmlHttpRequest
+// @grant       GM.getValue
+// @grant       GM.setValue
+// @grant       GM.listValues
 // @connect     cn.bing.com
 // @connect     www.bing.com
 // @connect     translate.googleapis.com
@@ -74,7 +79,7 @@
  *   2) 手动：document 捕获阶段 1 个 keydown 监听，ev.key === 'F9'，随时可重译。
  *   无划词、无 MutationObserver、不监听路由变化；已是简体中文的页面不改动内容。
  *   （DOMContentLoaded 监听只用于启动自动探测，不读页面文本）
- *   设置入口只在篡改猴菜单里（「AI 翻译设置」），页面内不注入任何常驻按钮。
+ *   设置入口只在脚本管理器菜单里（「AI 翻译设置」），页面内不注入任何常驻按钮。
  *   一次 TreeWalker 收集文本节点（共享给两个模块，避免重复遍历），按站点分流：
  *     GitHub/gist -> 词条替换 + 属性 + 相对时间 + CSS 规则 -> AI 批量翻译剩余
  *                    文本 -> 有批次失败时引擎链兜底。
@@ -82,14 +87,28 @@
  *                    剩余的走引擎链（去重 + 并发 + 译文缓存 + 节点上限）。
  *   执行中 running 锁，连按/长按不重复；焦点在输入框或可编辑区时跳过，不劫持打字。
  *
+ * ==================== 运行环境（脚本管理器兼容） ====================
+ *   全脚本只用 4 类 GM 接口，而且只在 Store / xhr 两处调用，适配层因此很薄：
+ *     篡改猴（Tampermonkey）、暴力猴（Violentmonkey）、脚本猫（ScriptCat）、
+ *     AdGuard、FireMonkey —— 完整功能（这五家都提供同步 GM_getValue）；
+ *     Greasemonkey 4、Safari「Userscripts」—— 只有异步接口，启动时先预读再初始化；
+ *     一个接口都没有时退到 localStorage（配置按站点隔离，属于降级）。
+ *   存储三态在启动时探测一次（STORE_MODE）：
+ *     sync  同步 GM_getValue —— 直接读，热路径零等待
+ *     async 只有 GM.getValue —— 先把全部键读进内存（hydrate），主流程等它就绪
+ *     local 都没有 —— localStorage 兜底
+ *   跨域三态（xhr 内依次降级）：GM_xmlhttpRequest → GM.xmlHttpRequest → fetch。
+ *   菜单接口缺失时（如 Safari），启动后提示一次快捷键，否则用户找不到入口。
+ *   面板底部「运行环境」一行写明当前管理器、存储形态与跨域通道，排障不用靠猜。
+ *
  * ==================== AI 翻译设置（大模型） ====================
- *   入口（仅配置，不触发翻译）：篡改猴菜单命令「AI 翻译设置」。
+ *   入口（仅配置，不触发翻译）：脚本管理器菜单命令「AI 翻译设置」。
  *   页面内不注入任何按钮/悬浮元素，避免在每网站上遮挡页面内容。
  *   面板（Shadow DOM，隔离 GitHub 样式）为居中卡片 + 遮罩，按「运行方式 / 接口 /
  *   参数 / 界面词条」四段分组，开关项用拨动开关；关闭方式：× / Esc / 点遮罩。
  *   可填：provider / baseUrl / API Key（可点「显示」查看）/ model /
  *   batchSize / maxChars / timeout / thinkingOff / cache。
- *   保存到本机篡改猴存储（键名 ghx2_ai_settings），F9 执行时读取；
+ *   保存到本机脚本管理器存储（键名 ghx2_ai_settings），F9 执行时读取；
  *   「测试连接」用面板当前值发一次真实请求验证可用性。
  *   公开版本内置 NVIDIA API Key 已置空，请填入自己的 Key；
  *   或 provider 填 builtin 使用浏览器内置 AI（免 Key）。
@@ -107,7 +126,7 @@
  *   缓存：合格的响应写入本机（ghx2_dict_remote / ghx2_dict_meta），离线可用。
  *   合并：远端条目覆盖同名内置条目并写入词条基线（F9 重译不会清掉），
  *         patterns 与 cssRules 去重后追加。
- *   手动：篡改猴菜单「立即更新词库」，或设置面板「界面词条 → 立即更新」。
+ *   手动：脚本管理器菜单「立即更新词库」，或设置面板「界面词条 → 立即更新」。
  *
  * ==================== 需人工确认的限制 ====================
  *  1) 图标为本项目自绘的原创图形（几何字母 A + 三条文字线），256x256 PNG、
@@ -119,7 +138,7 @@
  *     Bing / MyMemory 为免费公共接口，量大可能限流，可在 CFG 调整。
  *  4) F9 可能被浏览器或网页占用；已用捕获阶段 + preventDefault 抢占，
  *     个别站点仍可能冲突。
- *  5) 首次调用新 AI 域名时篡改猴可能弹跨域授权；@connect 已预置常用域名，
+ *  5) 首次调用新 AI 域名时管理器可能弹跨域授权（暴力猴必弹）；@connect 已预置常用域名，
  *     新域名需在脚本头部 @connect 补充。
  */
 
@@ -178,45 +197,168 @@ var CFG = {
 
 /* ==================== 共享基础设施（全脚本仅一份） ==================== */
 var PREFIX = 'ghx2_';          /* 统一配置/缓存键前缀，避免与两个原脚本冲突 */
+/* 脚本用到的全部存储键：异步管理器预读时按此清单拉取 */
+var STORE_KEYS = ['ai_settings', 'dict_remote', 'dict_meta', 'tr_cache', 'contrib_hits', 'contrib_sent'];
+
+/* 探测当前脚本管理器的存储接口形态：
+ *   sync  —— GM_getValue 同步返回（篡改猴 / 暴力猴 / 脚本猫 / AdGuard / FireMonkey）
+ *   async —— 只有 GM.getValue 这类 Promise 接口（Greasemonkey 4 / Safari Userscripts）
+ *   local —— 都没有，退回 localStorage（按站点隔离，换站读不到配置）
+ * 这不是可选的优化：非同步管理器若直接当同步读，会读到空值，表现为「配置每次都丢」。 */
+var STORE_MODE = (function () {
+  try {
+    if (typeof GM_getValue === 'function') {
+      var probe = GM_getValue(PREFIX + '_probe', 0);
+      return (probe && typeof probe.then === 'function') ? 'async' : 'sync';
+    }
+    if (typeof GM !== 'undefined' && GM && typeof GM.getValue === 'function') return 'async';
+  } catch (e) { }
+  return 'local';
+})();
+
 var Store = {
+  mode: STORE_MODE,
+  mem: Object.create(null),    /* 异步管理器的预读镜像 */
   get: function (k, d) {
+    var v;
+    if (this.mode === 'sync') {
+      try {
+        v = GM_getValue(PREFIX + k, undefined);
+        if (v !== undefined && v !== null && v !== '') return v;
+      } catch (e) { }
+    }
+    if (k in this.mem) {
+      v = this.mem[k];
+      if (v !== undefined && v !== null && v !== '') return v;
+    }
+    /* 同步管理器可能存储尚未就绪，异步管理器可能还没预读完：读小体量镜像 */
     try {
-      if (typeof GM_getValue === 'function') {
-        var v = GM_getValue(PREFIX + k, d);
-        return (v === undefined || v === null || v === '') ? d : v;
-      }
+      var s = localStorage.getItem(PREFIX + k);
+      if (s !== null && s !== '') return s;
     } catch (e) { }
-    try { var s = localStorage.getItem(PREFIX + k); return s === null ? d : s; } catch (e) { return d; }
+    return d;
   },
   set: function (k, v) {
-    try { if (typeof GM_setValue === 'function') { GM_setValue(PREFIX + k, v); return; } } catch (e) { }
-    try { localStorage.setItem(PREFIX + k, String(v)); } catch (e) { }
+    this.mem[k] = v;
+    if (this.mode === 'sync') {
+      try { GM_setValue(PREFIX + k, v); } catch (e) { }
+    } else {
+      try {
+        if (typeof GM !== 'undefined' && GM && typeof GM.setValue === 'function') GM.setValue(PREFIX + k, v);
+      } catch (e) { }
+    }
+    /* 只镜像小键（配置、计数）；词库正文几百 KB，写进每个站点的 localStorage 会撑爆配额 */
+    try {
+      if (typeof v !== 'string' || v.length <= 4096) {
+        localStorage.setItem(PREFIX + k, typeof v === 'string' ? v : JSON.stringify(v));
+      }
+    } catch (e) { }
+  },
+  /* 异步管理器：启动时把全部键读进内存，之后 Store.get 仍是同步语义 */
+  hydrate: function () {
+    var self = this;
+    if (self.mode !== 'async') return Promise.resolve(false);
+    var api = (typeof GM !== 'undefined' && GM) ? GM : null;
+    var read = (api && typeof api.getValue === 'function')
+      ? function (k) { return Promise.resolve(api.getValue(PREFIX + k)); }
+      : (typeof GM_getValue === 'function' ? function (k) { return Promise.resolve(GM_getValue(PREFIX + k)); } : null);
+    if (!read) return Promise.resolve(false);
+    var listP;
+    try {
+      if (api && typeof api.listValues === 'function') listP = Promise.resolve(api.listValues());
+      else if (typeof GM_listValues === 'function') listP = Promise.resolve(GM_listValues());
+    } catch (e) { }
+    return Promise.resolve(listP).catch(function () { return null; }).then(function (ks) {
+      var keys = (ks && ks.length)
+        ? ks.filter(function (k) { return String(k).indexOf(PREFIX) === 0; }).map(function (k) { return String(k).slice(PREFIX.length); })
+        : STORE_KEYS.slice();
+      if (!keys.length) keys = STORE_KEYS.slice();
+      return Promise.all(keys.map(function (k) {
+        return read(k).then(function (v) {
+          if (v !== undefined && v !== null && v !== '') self.mem[k] = v;
+        }, function () { });
+      }));
+    }).then(function () { return true; }, function () { return false; });
+  },
+  /* 同步管理器立即执行；异步管理器等在预读完成后执行 */
+  ready: function (cb) {
+    if (this.mode !== 'async') { try { cb(); } catch (e) { } return; }
+    this.hydrate().then(function () { try { cb(); } catch (e) { } });
   }
 };
 
-/* 唯一的跨域请求封装（Promise 版，两个模块共用） */
+/* 唯一的跨域请求封装（Promise 版，两个模块共用）
+ * 三级降级，覆盖不同脚本管理器：
+ *   1. GM_xmlhttpRequest（篡改猴 / 暴力猴 / 脚本猫 / AdGuard / FireMonkey）
+ *   2. GM.xmlHttpRequest（Greasemonkey 4 / Safari Userscripts，Promise 版）
+ *   3. fetch（都不可用时兜底；受浏览器 CORS 限制，能直连的接口不受影响） */
 function xhr(opts) {
+  var method = opts.method || 'GET';
+  var headers = opts.headers || {};
+  var data = opts.data;
+  var timeout = opts.timeout || 12000;
+
   return new Promise(function (resolve, reject) {
-    if (typeof GM_xmlhttpRequest !== 'function') {
-      reject(new Error('脚本管理器未授权跨域请求（GM_xmlhttpRequest）')); return;
+    var settled = false;
+    function ok(text) { if (!settled) { settled = true; resolve(text); } }
+    function no(e) { if (!settled) { settled = true; reject(e instanceof Error ? e : new Error(String(e))); } }
+    function parse(status, text) {
+      if (status >= 200 && status < 300) ok(text || '');
+      else no(new Error('HTTP ' + status + ' ' + String(text || '').slice(0, 100)));
     }
-    var done = false;
-    function finish(fn, arg) { if (!done) { done = true; fn(arg); } }
-    GM_xmlhttpRequest({
-      method: opts.method || 'GET',
-      url: opts.url,
-      headers: opts.headers || {},
-      data: opts.data,
-      timeout: opts.timeout || 12000,
-      responseType: opts.responseType || 'text',
-      onload: function (r) {
-        if (r.status >= 200 && r.status < 300) finish(resolve, r.responseText || '');
-        else finish(reject, new Error('HTTP ' + r.status + ' ' + String(r.responseText || '').slice(0, 100)));
-      },
-      onerror: function () { finish(reject, new Error('网络错误')); },
-      ontimeout: function () { finish(reject, new Error('请求超时')); },
-      onabort: function () { finish(reject, new Error('请求被中断')); }
-    });
+
+    if (typeof GM_xmlhttpRequest === 'function') {
+      try {
+        GM_xmlhttpRequest({
+          method: method,
+          url: opts.url,
+          headers: headers,
+          data: data,
+          timeout: timeout,
+          responseType: opts.responseType || 'text',
+          onload: function (r) { parse(r.status, r.responseText); },
+          onerror: function () { no(new Error('网络错误')); },
+          ontimeout: function () { no(new Error('请求超时')); },
+          onabort: function () { no(new Error('请求被中断')); }
+        });
+      } catch (e) { no(e); }
+      return;
+    }
+
+    var api = (typeof GM !== 'undefined' && GM) ? GM : null;
+    if (api && typeof api.xmlHttpRequest === 'function') {
+      try {
+        Promise.resolve(api.xmlHttpRequest({
+          method: method, url: opts.url, headers: headers, data: data,
+          timeout: timeout, responseType: opts.responseType || 'text'
+        })).then(function (r) {
+          r = r || {};
+          var text = (r.responseText !== undefined && r.responseText !== null) ? r.responseText
+            : (typeof r.response === 'string' ? r.response : '');
+          parse(r.status, text);
+        }, function (e) { no(e); });
+      } catch (e) { no(e); }
+      return;
+    }
+
+    if (typeof fetch === 'function') {
+      var ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+      var timer = ctrl ? setTimeout(function () { try { ctrl.abort(); } catch (e) { } }, timeout) : null;
+      var init = { method: method, headers: headers, signal: ctrl ? ctrl.signal : undefined };
+      if (data !== undefined && data !== null && method !== 'GET') init.body = data;
+      fetch(opts.url, init).then(function (res) {
+        return res.text().then(function (t) {
+          if (timer) clearTimeout(timer);
+          parse(res.status, t);
+        });
+      }, function (e) {
+        if (timer) clearTimeout(timer);
+        no(new Error(e && e.name === 'AbortError' ? '请求超时' : '网络错误（fetch 可能被 CORS 拦截）'));
+      });
+      return;
+    }
+
+    no(new Error('当前脚本管理器未提供跨域请求接口（GM_xmlhttpRequest）'));
   });
 }
 
@@ -2959,7 +3101,7 @@ return {
  *         （浏览器脚本无法在 0:00 主动唤醒，等价实现是「跨日首次打开页面时拉取」，
  *          24 小时内最多一次；后台标签的定时器会被浏览器节流，定时器方案不可靠）
  *   失败换源：GitHub 原始地址 → 4 个镜像依次尝试，任一成功即写入本机缓存
- *   手动：篡改猴菜单「立即更新词库」/ 设置面板「立即更新」
+ *   手动：脚本管理器菜单「立即更新词库」/ 设置面板「立即更新」
  * ================================================================== */
 var DICT_META_KEY = 'dict_meta';
 var DICT_DATA_KEY = 'dict_remote';
@@ -3306,8 +3448,8 @@ function contribIssueCreate(cb) {
 
 /* ==================================================================
  * AI 翻译设置面板（仅配置大模型；翻译仍只由 F9 触发）
- * 入口：篡改猴菜单「AI 翻译设置」（页面内不注入按钮）
- * 配置保存在本机篡改猴存储，不上传任何页面
+ * 入口：脚本管理器菜单「AI 翻译设置」（页面内不注入按钮）
+ * 配置保存在本机脚本管理器存储，不上传任何页面
  * ================================================================== */
 var AI_SET_KEY = 'ai_settings';
 
@@ -3324,6 +3466,32 @@ function loadAISettings() {
       }
     }
   } catch (e) { }
+}
+
+/* 运行环境自述：直接回答「我这个脚本管理器行不行」，省去让用户描述排障 */
+function envHandlerName() {
+  var name = '', ver = '';
+  try {
+    if (typeof GM_info !== 'undefined' && GM_info) { name = GM_info.scriptHandler || ''; ver = GM_info.version || ''; }
+    else if (typeof GM !== 'undefined' && GM && GM.info) { name = GM.info.scriptHandler || ''; ver = GM.info.version || ''; }
+  } catch (e) { }
+  return name ? name + (ver ? ' ' + ver : '') : '未识别';
+}
+function envTransport() {
+  if (typeof GM_xmlhttpRequest === 'function') return 'GM_xmlhttpRequest';
+  if (typeof GM !== 'undefined' && GM && typeof GM.xmlHttpRequest === 'function') return 'GM.xmlHttpRequest';
+  if (typeof fetch === 'function') return 'fetch（受 CORS 限制）';
+  return '无';
+}
+function envStore() {
+  if (Store.mode === 'sync') return '同步存储';
+  if (Store.mode === 'async') return '异步存储（已预读）';
+  return 'localStorage（仅当前站点）';
+}
+function envSummary() {
+  var hasMenu = (typeof GM_registerMenuCommand === 'function');
+  return '运行环境：' + envHandlerName() + ' · ' + envStore() + ' · 跨域 ' + envTransport() +
+    (hasMenu ? '' : ' · 无菜单接口，用 ' + (CFG.ai.openKey || 'Alt+N') + ' 打开本面板');
 }
 
 function openAISettings() {
@@ -3415,6 +3583,7 @@ function openAISettings() {
     '.hint{font-size:11.5px;color:var(--muted);line-height:1.65;padding:1px 0}' +
     '.hint code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;background:var(--soft);padding:1px 4px;border-radius:4px}' +
     '.hint.warn{color:#d97706;background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.35);border-radius:6px;padding:6px 8px;margin-top:6px}' +
+    '.hint.env{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-size:11px;word-break:break-word}' +
     '@media (prefers-color-scheme:dark){.card{--bg:#161b22;--fg:#e6edf3;--muted:#8b949e;--line:#30363d;--soft:#1c2128;--field:#0d1117;--accent:#238636;--accent-h:#2ea043;--ring:rgba(46,160,67,.3);--danger:#f85149;--ok:#3fb950}' +
       '.mask{background:rgba(1,4,9,.68)}input::placeholder{color:#6e7681}' +
       '.body{scrollbar-color:#484f58 transparent}.body::-webkit-scrollbar-thumb{background:#484f58;background-clip:padding-box}.body::-webkit-scrollbar-thumb:hover{background:#5b646e;background-clip:padding-box}}' +
@@ -3486,6 +3655,7 @@ function openAISettings() {
               '<button class="btn sm" id="dictupd" type="button" title="每天北京时间 0 点后首次打开自动同步一次；GitHub 原始地址与 gh-proxy 反代同时发（谁先到用谁），失败再依次换 jsDelivr 两个域名">立即更新</button>' +
             '</div>' +
             '<div class="dict-sub" id="dictsub"></div>' +
+            '<div class="hint env" id="envline"></div>' +
           '</div>' +
           '<details class="sec fold" id="contribfold">' +
             '<summary class="sec-t">词条回传<span class="fold-tip">采集未命中词条，攒够回传词条库</span></summary>' +
@@ -3589,6 +3759,8 @@ function openAISettings() {
       sub.textContent = aiText.replace(/^ · /, '');
     }
     el.title = s.synced ? '内置 ' + s.builtin + ' + 远端新增 ' + s.remoteNew + ' = 词库 ' + s.dictN + ' 条；AI 记忆 ' + s.aiN + ' 条不计入' : '';
+    var env = f('envline');
+    if (env) env.textContent = envSummary();
   }
   /* ---- 词库回传 ---- */
   function renderContribInfo() {
@@ -3769,8 +3941,10 @@ function openAISettings() {
   try { f('key').focus(); } catch (e) { }
 }
 
-/* 设置入口：只注册篡改猴菜单项，不向页面注入任何常驻元素
- * （脚本 @match 覆盖所有站点，浮动按钮会在每个网站挡住左下角内容） */
+/* 设置入口：只注册脚本管理器菜单项，不向页面注入任何常驻元素
+ * （脚本 @match 覆盖所有站点，浮动按钮会在每个网站挡住左下角内容）
+ * 菜单接口在各管理器的位置不同：篡改猴/暴力猴在扩展图标里，脚本猫在「脚本 → 菜单」；
+ * 少数管理器没有菜单接口（如 Safari 的 Userscripts），改用快捷键并在启动后提示一次。 */
 try {
   if (typeof GM_registerMenuCommand === 'function') {
     GM_registerMenuCommand('AI 翻译设置', openAISettings);
@@ -3787,15 +3961,24 @@ try {
       openContribIssue(function (t) { toast(t); });
     });
     GM_registerMenuCommand('关闭翻译（恢复原文）', closeTranslation);
+  } else {
+    /* 没有菜单接口：启动后提示一次快捷键，否则用户找不到入口 */
+    setTimeout(function () {
+      toast('脚本已就绪：按 ' + (CFG.ai.openKey || 'Alt+N') + ' 打开设置面板（当前管理器无菜单接口）');
+    }, 1500);
   }
 } catch (e) { }
 
-loadAISettings();                     /* 启动时读回本机保存的配置，F9 才能拿到用户填的 Key */
-I18n.loadRemoteDict();                /* 先套用本机缓存的远端词库，离线也有上次同步的内容 */
-if (CFG.dict && CFG.dict.enabled && CFG.dict.daily) {
-  /* 延迟 1.2s 让首屏先渲染；同步在后台跑，失败会用镜像重试，不阻塞翻译 */
-  setTimeout(function () { dictSync({}); }, 1200);
-}
+/* 启动序列必须等存储就绪：异步存储管理器（Greasemonkey 4 / Safari Userscripts）
+ * 若直接读会拿到空配置，表现为「每次打开都像首次安装、Key 白填」。 */
+Store.ready(function () {
+  loadAISettings();                   /* 启动时读回本机保存的配置，F9 才能拿到用户填的 Key */
+  I18n.loadRemoteDict();              /* 先套用本机缓存的远端词库，离线也有上次同步的内容 */
+  if (CFG.dict && CFG.dict.enabled && CFG.dict.daily) {
+    /* 延迟 1.2s 让首屏先渲染；同步在后台跑，失败会用镜像重试，不阻塞翻译 */
+    setTimeout(function () { dictSync({}); }, 1200);
+  }
+});
 
 var running = false;
 
@@ -3882,8 +4065,10 @@ var autoTried = false;      /* 本次页面加载是否已经走过自动翻译 
 function autoTranslateOnce() {
   if (autoTried) return;
   autoTried = true;
-  if (!CFG.ai.autoTranslate || running) return;   /* 关掉了，或用户已手动按过 F9 */
-  runAll('auto');
+  Store.ready(function () {
+    if (!CFG.ai.autoTranslate || running) return;   /* 关掉了，或用户已手动按过 F9 */
+    runAll('auto');
+  });
 }
 
 (function scheduleAuto() {

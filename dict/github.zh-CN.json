@@ -4,7 +4,7 @@
  "target": "zh-CN",
  "version": "2026.11.08-r2",
  "updatedAt": "2026-11-08T10:36:37.911Z",
- "note": "GitHub 界面汉化词库。键为小写、空格归一的英文原文；值为简体中文。本版由 GitHub Actions 自动补充 5 条（2026-11-08）。",
+ "note": "GitHub 界面词条库。键为小写、空格归一的英文原文；值为简体中文。本版由 GitHub Actions 自动补充 5 条（2026-11-08）。",
  "count": 2330,
  "patterns": [
   {

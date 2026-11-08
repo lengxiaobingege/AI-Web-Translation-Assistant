@@ -11,7 +11,7 @@
 // @homepageURL https://github.com/lengxiaobingege/AI-Web-Translation-Assistant
 // @supportURL  https://github.com/lengxiaobingege/AI-Web-Translation-Assistant/issues
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.4.14
+// @version     1.4.15
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @description Non-Chinese pages auto-translate to Chinese, F9 to retranslate anytime; AI model first with free engine fallback; built-in GitHub UI glossary replaces hits instantly at zero cost.
@@ -3679,7 +3679,7 @@ function openAISettings() {
               '<div class="switch-txt"><b>只走镜像</b><i>api.github.com 完全打不开时打开：连直连都不试，直接走镜像</i></div>' +
               '<label class="sw"><input type="checkbox" id="cmironly"><span></span></label>' +
             '</div>' +
-            '<div class="hint">两种回传方式：<b>推送到 GitHub</b> 直接写 <code>dict/contribs/</code>（需 Token）；<b>提交 Issue</b> 把清单发成 Issue——填了 Token 会用 API 建单（一次最多 300 条），没填就打开预填页面（按长度自动分批）。词条每天 12:40 合并进正式词库。</div>' +
+            '<div class="hint">两种回传方式：<b>推送到 GitHub</b> 直接写 <code>dict/contribs/</code>（需 Token）；<b>提交 Issue</b> 把清单发成 Issue——填了 Token 会用 API 建单（一次最多 300 条），没填就打开预填页面（按长度自动分批）。词条每天 12:20 合并进正式词库。</div>' +
             '<div class="hint warn">走镜像时，你的 Token 会经过第三方镜像服务器。建议改用<b>细粒度 Token</b>，只勾这一个仓库的 Contents 与 Issues 写权限，泄露也能一键撤销。介意的话把镜像填成你自己搭的地址。</div>' +
           '</details>' +
         '</div>' +

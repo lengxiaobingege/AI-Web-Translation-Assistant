@@ -18,7 +18,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-const dictPath = path.join(root, 'dict/github.zh-CN.json');
+const dictPath = path.join(root, 'dict/zh-CN.json');
 const contribDir = path.join(root, 'dict/contribs');
 const dry = process.argv.includes('--dry');
 const force = process.argv.includes('--force');

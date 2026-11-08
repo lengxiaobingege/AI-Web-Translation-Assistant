@@ -198,8 +198,9 @@ node tools/merge_contrib.js --force   # 需要覆盖同名条目时用（改错�
 # 确认无误后提交 dict/github.zh-CN.json 并推送
 ```
 
-> Issue 渠道的自动化：用户一提交 Issue，`.github/workflows/dict-issue-intake.yml` 就会跑 `tools/issue_to_contrib.js` 解析正文——
-> 只认 `- 原文 → 译文` 单行；单条 Issue 上限 300 条、键与译文各 200 字符；含 HTML 标签、URL、代码块、以及中文→外文的反向条目一律跳过；解析结果写进 `dict/contribs/`，然后在 Issue 里回帖说明接收了几条、跳过几行，并打上「词库贡献」标签。
+> Issue 渠道的自动化（**打标才解析**）：用户提交 Issue 后不会立刻处理，维护者确认要收这条时给它打上「词库贡献」标签，`.github/workflows/dict-issue-intake.yml` 才会跑 `tools/issue_to_contrib.js` 解析正文——
+> 这样任何人开 Issue 都不会自动往仓库写文件；也可以在 Actions 页手动触发并填写 Issue 编号。解析规则：
+> 只认 `- 原文 → 译文` 单行；单条 Issue 上限 300 条、键与译文各 200 字符；含 HTML 标签、URL、代码块、以及中文→外文的反向条目一律跳过；解析结果写进 `dict/contribs/`，然后在 Issue 里回帖说明接收了几条、跳过几行。
 > 解析失败或没有可用词条时不会提交任何文件，只在 Issue 里说明，维护者仍可人工处理。
 
 ### 合并规则

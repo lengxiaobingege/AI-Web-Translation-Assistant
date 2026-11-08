@@ -244,7 +244,7 @@ const sameDay = prev.startsWith(today);
 const rev = sameDay && /-r(\d+)$/.test(prev) ? Number(prev.match(/-r(\d+)$/)[1]) + 1 : 1;
 data.version = sameDay ? today + '-r' + rev : today;
 data.updatedAt = new Date().toISOString();
-data.note = 'GitHub 界面汉化词库。键为小写、空格归一的英文原文；值为简体中文。' +
+data.note = 'GitHub 界面词条库。键为小写、空格归一的英文原文；值为简体中文。' +
   '本版由 GitHub Actions 自动补充 ' + added.length + ' 条（' + new Date().toISOString().slice(0, 10) + '）。';
 
 fs.writeFileSync(DICT_PATH, JSON.stringify(data, null, 1) + '\n', 'utf8');

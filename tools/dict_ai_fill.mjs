@@ -4,7 +4,7 @@
  * 流程：
  *   1. 从「候选英文」中挑出词库里还没有的条目
  *   2. 分批交给 OpenAI 兼容接口翻译（严格 JSON 输出，逐条校验）
- *   3. 合并进 dict/github.zh-CN.json，同步 count / version
+ *   3. 合并进 dict/zh-CN.json，同步 count / version
  *
  * 没配 Key 时直接退出 0，不会让流水线变红。
  *
@@ -25,7 +25,7 @@ import { dirname } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
-const DICT_PATH = path.join(root, 'dict/github.zh-CN.json');
+const DICT_PATH = path.join(root, 'dict/zh-CN.json');
 
 /* 接口地址容错：
  * 有人习惯填 https://xxx/v1 ，也有人填完整的 .../v1/chat/completions。

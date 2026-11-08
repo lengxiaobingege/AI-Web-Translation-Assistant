@@ -542,7 +542,7 @@ const TW_PAGE = ('這個頁面使用繁體中文撰寫，用來驗證自動翻�
       'ai=' + ai(r).length + ' 节点=' + r.nodes.map(n => n.nodeValue).join(' | '));
   }
 
-  console.log('场景 19：词库回传 —— 采集未命中词条并推送到 GitHub');
+  console.log('场景 19：词条回传 —— 采集未命中词条并推送到 GitHub');
   {
     const r = await run({
       aiMode: 'ok', texts: ['Zebra crossing ahead'],

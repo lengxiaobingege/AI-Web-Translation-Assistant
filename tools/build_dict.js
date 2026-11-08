@@ -1,4 +1,4 @@
-/* 生成远端词库 dict/github.zh-CN.json
+/* 生成远端词库 dict/zh-CN.json
  * 来源：脚本内置 DICT（基线）+ 本文件的 EXTRA 增强集 + PATTERNS 数量/时间规则
  * 用法：node tools/build_dict.js
  */
@@ -472,7 +472,7 @@ const out = {
   dict,
 };
 
-const dest = path.join(ROOT, 'dict', 'github.zh-CN.json');
+const dest = path.join(ROOT, 'dict', 'zh-CN.json');
 fs.mkdirSync(path.dirname(dest), { recursive: true });
 fs.writeFileSync(dest, JSON.stringify(out, null, 1) + '\n', 'utf8');
 

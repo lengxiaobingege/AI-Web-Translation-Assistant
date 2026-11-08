@@ -16,7 +16,7 @@ const AS_JSON = argv.includes('--json');
 
 const normKey = (s) => String(s).replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
 
-const remote = JSON.parse(fs.readFileSync(path.join(root, 'dict/github.zh-CN.json'), 'utf8'));
+const remote = JSON.parse(fs.readFileSync(path.join(root, 'dict/zh-CN.json'), 'utf8'));
 const rk = Object.keys(remote.dict || {});
 
 /* 内置词库 */

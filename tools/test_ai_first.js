@@ -398,7 +398,7 @@ const TW_PAGE = ('這個頁面使用繁體中文撰寫，用來驗證自動翻�
   {
     const r = await run({
       aiMode: 'ok', texts: ['Zebra crossing ahead'],
-      contrib: { enabled: true, token: 'test-token-abc123', repo: 'lengxiaobingege/AI-Web-Translation-Assistant.' }
+      contrib: { enabled: true, token: 'test-token-abc123', repo: 'lengxiaobingege/AI-Web-Translation-Assistant' }
     });
     const hits = JSON.parse(r.stored['ghx2_contrib_hits'] || '{}');
     check('采集到 AI 译文', hits['Zebra crossing ahead'] === '译:Zebra crossing ahead', JSON.stringify(hits));

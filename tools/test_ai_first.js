@@ -35,7 +35,7 @@ function mockEl(tag) {
   return el;
 }
 
-async function run({ aiMode, texts, settings, host, lang, pageText, manual = true, presses = 1, snapshots = null, dictMode = 'off', waitDict = false, extraDict = null, contrib = null }) {
+async function run({ aiMode, texts, settings, host, lang, pageText, manual = true, presses = 1, snapshots = null, dictMode = 'off', waitDict = false, extraDict = null, contrib = null, contribHits = null, pushPerm = true }) {
   const calls = [];
   const payloads = [];
   const headers = [];
@@ -43,6 +43,8 @@ async function run({ aiMode, texts, settings, host, lang, pageText, manual = tru
   const ghCalls = [];
   const stored = {};
   const menus = {};
+  const opened = [];
+  if (contribHits) stored['ghx2_contrib_hits'] = JSON.stringify(contribHits);
   const dictPayload = () => {
     const d = {};
     for (let i = 0; i < 150; i++) d['filler key ' + i] = '填充' + i;
@@ -117,7 +119,24 @@ async function run({ aiMode, texts, settings, host, lang, pageText, manual = tru
       headers.push(o.headers || {});
       timers.push(() => {
         if (/api\.github\.com/.test(o.url)) {
-          ghCalls.push({ url: o.url, data: String(o.data || ''), headers: o.headers || {} });
+          ghCalls.push({ url: o.url, method: String(o.method || 'GET').toUpperCase(), data: String(o.data || ''), headers: o.headers || {} });
+          if (/\/issues$/.test(o.url)) {
+            // 建单：返回编号与链接，带 labels 时回显，便于断言
+            let sent = {};
+            try { sent = JSON.parse(String(o.data || '{}')); } catch (e) { }
+            o.onload({
+              status: 201, responseText: JSON.stringify({
+                number: 77, html_url: 'https://github.com/o/r/issues/77',
+                labels: (sent.labels || []).map(n => ({ name: n }))
+              })
+            });
+            return;
+          }
+          if (/api\.github\.com\/repos\/[^/]+\/[^/]+$/.test(o.url)) {
+            // 仓库信息：permissions.push 决定能不能打标签
+            o.onload({ status: 200, responseText: JSON.stringify({ permissions: { push: !!pushPerm, admin: !!pushPerm } }) });
+            return;
+          }
           o.onload({ status: 201, responseText: JSON.stringify({ content: { path: 'dict/contribs/x.json' } }) });
           return;
         }
@@ -142,6 +161,7 @@ async function run({ aiMode, texts, settings, host, lang, pageText, manual = tru
       });
     }
   };
+  sandbox.open = (u) => { opened.push(u); return null; };
   sandbox.window = sandbox;
 
   vm.createContext(sandbox);
@@ -195,7 +215,7 @@ async function run({ aiMode, texts, settings, host, lang, pageText, manual = tru
   }
   const toasts = () => (body.children || []).map(c => c.textContent).join(' ／ ');
   return {
-    calls, payloads, headers, ghCalls, nodes, toasts, body, dictCalls, stored, menus, drain,
+    calls, payloads, headers, ghCalls, nodes, toasts, body, dictCalls, stored, menus, drain, opened,
     press: () => keyHandler({ key: 'F9', repeat: false, preventDefault() {}, stopPropagation() {} }),
     key: (k, mods) => {
       const ev = Object.assign({ key: k, repeat: false, preventDefault() { ev.defaultPrevented = true; }, stopPropagation() {} }, mods || {});
@@ -429,6 +449,94 @@ const TW_PAGE = ('這個頁面使用繁體中文撰寫，用來驗證自動翻�
     r.press();
     await r.drain();
     check('F9 仍正常翻译', r.nodes[0].nodeValue === '译:Zebra crossing ahead', r.nodes[0].nodeValue);
+  }
+
+  console.log('场景 21：提交 Issue —— 分批续提、URL 长度受控');
+  {
+    const hits = {};
+    for (let i = 0; i < 400; i++) hits['filler phrase ' + i + ' for issue test'] = '填充短语' + i;
+    const r = await run({
+      aiMode: 'ok', texts: ['Zebra crossing ahead'],
+      contrib: { enabled: true, token: '' }, contribHits: hits
+    });
+    const issue = r.menus['提交词库 Issue'];
+    check('菜单项已注册', typeof issue === 'function', typeof issue);
+    issue();
+    const url1 = r.opened[0] || '';
+    check('打开预填 Issue', r.opened.length === 1 && /\/issues\/new\?title=/.test(url1), url1.slice(0, 60));
+    check('URL 长度在 8000 以内', url1.length <= 8000, url1.length + ' 字符');
+    const body1 = decodeURIComponent((url1.match(/body=([\s\S]*)$/) || [])[1] || '');
+    const lines1 = body1.split('\n').filter(l => /^- /.test(l));
+    check('正文带 ghx-contrib 标记', body1.startsWith('<!-- ghx-contrib -->'), body1.slice(0, 24));
+    check('本次条数不超过 300', lines1.length > 0 && lines1.length <= 300, lines1.length + ' 条');
+    check('提示剩余条数', /还剩 \d+ 条/.test(r.toasts()), r.toasts());
+    const first1 = lines1[0];
+
+    issue();
+    const url2 = r.opened[1] || '';
+    const body2 = decodeURIComponent((url2.match(/body=([\s\S]*)$/) || [])[1] || '');
+    const lines2 = body2.split('\n').filter(l => /^- /.test(l));
+    check('第二次接着提剩下的', !!lines2[0] && lines2[0] !== first1,
+      (lines2[0] || '').slice(0, 44) + ' <> ' + first1.slice(0, 44));
+    check('已提交标记累加记录',
+      (JSON.parse(r.stored['ghx2_contrib_sent'] || '[]')).length === lines1.length + lines2.length,
+      String((JSON.parse(r.stored['ghx2_contrib_sent'] || '[]')).length));
+  }
+
+  console.log('场景 22：有 Token 时直接建 Issue —— 维护者带「词库贡献」标签、只读 Token 不带、60 秒冷却');
+  {
+    const hits = {};
+    for (let i = 0; i < 320; i++) hits['token filler phrase ' + i + ' here'] = '令牌填充' + i;
+
+    // 22a：维护者（有 push 权限）→ 先查仓库权限，再建单并带标签
+    {
+      const r = await run({
+        aiMode: 'ok', texts: ['Zebra crossing ahead'],
+        contrib: { enabled: true, token: 'dummy-owner-token' }, contribHits: hits
+      });
+      r.menus['提交词库 Issue']();
+      await r.drain();
+      const gh = r.ghCalls.filter(c => /api\.github\.com/.test(c.url));
+      check('先查仓库权限', /^GET$/.test(gh[0] && gh[0].method) && /\/repos\/[^/]+\/[^/]+$/.test(gh[0].url), (gh[0] || {}).url);
+      const postCall = gh.find(c => /\/issues$/.test(c.url));
+      check('再用 API 建单', !!postCall && postCall.method === 'POST', (postCall || {}).url);
+      let sent = {};
+      try { sent = JSON.parse((postCall || {}).data || '{}'); } catch (e) { }
+      check('带「词库贡献」标签', Array.isArray(sent.labels) && sent.labels[0] === '词库贡献', JSON.stringify(sent.labels));
+      const lines = String(sent.body || '').split('\n').filter(l => /^- /.test(l));
+      check('正文条数取满 300 上限', lines.length === 300, lines.length + ' 条');
+      check('正文带 ghx-contrib 标记', String(sent.body || '').startsWith('<!-- ghx-contrib -->'), String(sent.body || '').slice(0, 24));
+      check('Authorization 用 Bearer', /^Bearer /.test((postCall || {}).headers.Authorization || ''), (postCall || {}).headers.Authorization);
+      check('提示含 Issue 编号', /#77/.test(r.toasts()), r.toasts().slice(-80));
+      // 采集队列里还会有一条页面 AI 译文，剩余量按实际队列算，不写死
+      const totalKeys = Object.keys(JSON.parse(r.stored['ghx2_contrib_hits'] || '{}')).length;
+      check('提示剩余条数正确', new RegExp('还剩 ' + (totalKeys - lines.length) + ' 条').test(r.toasts()),
+        '总数 ' + totalKeys + ' / 未提 ' + (totalKeys - lines.length) + '：' + r.toasts().slice(-60));
+      check('未走浏览器窗口', r.opened.length === 0, String(r.opened.length));
+
+      // 22b：冷却期内再点 → 不发请求，提示等待
+      const before = r.ghCalls.length;
+      r.menus['提交词库 Issue']();
+      await r.drain();
+      check('冷却期内不再建单', r.ghCalls.length === before, r.ghCalls.length + ' vs ' + before);
+      check('提示稍后再提', /秒后可再提/.test(r.toasts()), r.toasts().slice(-60));
+    }
+
+    // 22c：只读 Token（无 push 权限）→ 建单但不带标签，避免被 GitHub 退回
+    {
+      const r = await run({
+        aiMode: 'ok', texts: ['Zebra crossing ahead'], pushPerm: false,
+        contrib: { enabled: true, token: 'dummy-readonly-token' }, contribHits: hits
+      });
+      r.menus['提交词库 Issue']();
+      await r.drain();
+      const postCall = r.ghCalls.find(c => /\/issues$/.test(c.url));
+      let sent = {};
+      try { sent = JSON.parse((postCall || {}).data || '{}'); } catch (e) { }
+      check('只读 Token 仍能建单', !!postCall, (postCall || {}).url);
+      check('不带标签', sent.labels === undefined, JSON.stringify(sent.labels));
+      check('正文仍完整提交', String(sent.body || '').indexOf('<!-- ghx-contrib -->') === 0, String(sent.body || '').slice(0, 24));
+    }
   }
 
   console.log('\n结果: ' + pass + ' 通过 / ' + fail + ' 失败');

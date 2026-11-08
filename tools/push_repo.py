@@ -10,8 +10,7 @@ Token 来源（按顺序）：
   python tools/push_repo.py "feat: 更新脚本至 1.2.0" AI-Web-Translation-Assistant.user.js icon.png
   python tools/push_repo.py "chore: 清理构建产物" --rm dist/ai-web-translation-ext-1.4.11.zip
 
-约定：仓库只放源码与文档。构建产物（dist/、*.zip、截图）一律拒绝推送，
-      需要给别人扩展包时本地 `npm run build:ext` 生成后单独发送。
+约定：仓库只放源码与文档。构建产物（dist/、*.zip、截图）一律拒绝推送。
 """
 import base64
 import json

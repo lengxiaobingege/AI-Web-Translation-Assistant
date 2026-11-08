@@ -1,0 +1,26 @@
+# 仓库只存源码与文档，不存构建产物
+dist/
+build/
+out/
+*.zip
+*.crx
+*.xpi
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 本地凭据
+.gh_token
+.env
+
+# 开发用截图 / 抓取中间文件
+tools/panel_*.png
+tools/_*.png
+tools/_*.json
+tools/preview_panel_*.html
+
+# 系统垃圾
+.DS_Store
+Thumbs.db
+*.log

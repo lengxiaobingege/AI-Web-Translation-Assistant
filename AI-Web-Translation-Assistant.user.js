@@ -9,7 +9,7 @@
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.4.3
+// @version     1.4.4
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @description 合并版：自动检测页面语言，非简体中文自动翻译（英文/日文/韩文/德文等，繁体转简体），F9 可随时手动重译；AI 大模型优先、不可用时回退引擎链。
@@ -38,6 +38,7 @@
 // @connect     cdn.jsdelivr.net
 // @connect     jsd.onmicrosoft.cn
 // @connect     ghfast.top
+// @connect     api.github.com
 // @license     MIT
 // ==/UserScript==
 
@@ -165,7 +166,8 @@ var CFG = {
     batchSize: 20,
     maxChars: 600,
     cache: true,
-    autoTranslate: true           /* 非简体中文页面自动翻译（自动检测语种）；F9 仍可手动重译 */
+    autoTranslate: true,          /* 非简体中文页面自动翻译（自动检测语种）；F9 仍可手动重译 */
+    openKey: 'Alt+N'              /* 打开设置面板的快捷键（Ctrl+N 属浏览器保留键，无法被网页拦截） */
   }
 };
 
@@ -590,6 +592,7 @@ async function runPage(nodes) {
     }
     trCache[item.key] = translated;
     cacheDirty = true;
+    contribRecord(item.text, translated);   /* 词库回传采集（默认关闭） */
     ok++;
   }
 
@@ -2876,6 +2879,7 @@ function aiComplete(nodes, done) {
           if (!t || t === b[k]) continue;
           if (!applyOne(normKey(b[k]), t)) continue;
           if (aiCfg.cache) { aiCache[normKey(b[k])] = t; DICT[normKey(b[k])] = t; }
+          contribRecord(b[k], t);          /* 词库回传采集（默认关闭） */
           ok++;
         }
       }
@@ -2981,6 +2985,96 @@ function closeTranslation() {
   else toast('已关闭翻译，恢复原文 ' + n + ' 处（按 F9 可重新翻译）');
 }
 
+/* ==================================================================
+ * 词库回传：词库没翻到、靠 AI/引擎翻出的短文案采集到本机，再回传仓库
+ *   - 有仓库写权限的 Token → 直接推送为 dict/contribs/ 下的 JSON（Contents API）
+ *   - 没有 Token → 生成预填的 GitHub Issue 链接，由维护者合并进正式词库
+ *   - 采集默认关闭；只记录 ≤80 字符的单行短文案，仅存本机
+ * ================================================================== */
+var CONTRIB_KEY = 'contrib_hits';
+var CONTRIB_MAX = 500;
+var contribCfg = { enabled: false, token: '', repo: 'lengxiaobingege/AI-Web-Translation-Assistant.' };
+try {
+  var _cc = JSON.parse(Store.get('contrib_settings', '{}')) || {};
+  if (_cc && typeof _cc === 'object') {
+    if (typeof _cc.enabled === 'boolean') contribCfg.enabled = _cc.enabled;
+    if (typeof _cc.token === 'string') contribCfg.token = _cc.token;
+    if (typeof _cc.repo === 'string' && _cc.repo) contribCfg.repo = _cc.repo;
+  }
+} catch (e) { }
+
+function contribLoad() {
+  try { var o = JSON.parse(Store.get(CONTRIB_KEY, '{}')); return (o && typeof o === 'object') ? o : {}; }
+  catch (e) { return {}; }
+}
+function contribSave(obj) { try { Store.set(CONTRIB_KEY, JSON.stringify(obj)); } catch (e) { } }
+
+/* AI / 引擎产出译文时调用；只收短的单行 UI 文案 */
+function contribRecord(en, zh) {
+  if (!contribCfg.enabled) return;
+  en = String(en || '').trim();
+  zh = String(zh || '').trim();
+  if (!en || !zh || en === zh) return;
+  if (en.length > 80 || /[\n\r]/.test(en) || /\\n/.test(en)) return;
+  var obj = contribLoad();
+  /* 注意：本函数在顶层作用域，不能引用 I18n 模块内的 hasOwn */
+  if (!Object.prototype.hasOwnProperty.call(obj, en) && Object.keys(obj).length >= CONTRIB_MAX) return;
+  obj[en] = zh;
+  contribSave(obj);
+}
+
+function utf8ToB64(s) {
+  try { return btoa(unescape(encodeURIComponent(s))); } catch (e) { return ''; }
+}
+
+/* 把本地采集的词条推送为仓库 dict/contribs/contrib-<时间戳>.json */
+function contribPush(cb) {
+  var done = typeof cb === 'function' ? cb : function () { };
+  if (!contribCfg.token) { done({ ok: false, reason: '请先在设置面板「词库回传」里填 GitHub Token' }); return; }
+  var hits = contribLoad();
+  var n = Object.keys(hits).length;
+  if (!n) { done({ ok: false, reason: '本地没有待上传的采集词条' }); return; }
+  var repo = contribCfg.repo.replace(/^\/+|\/+$/g, '');
+  var d = new Date();
+  function p2(x) { return (x < 10 ? '0' : '') + x; }
+  var name = 'contrib-' + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '-' + p2(d.getHours()) + p2(d.getMinutes()) + p2(d.getSeconds()) + '.json';
+  var path = 'dict/contribs/' + name;
+  var body = JSON.stringify({ schema: 1, from: 'userscript', count: n, hits: hits }, null, 2);
+  xhr({
+    method: 'PUT',
+    url: 'https://api.github.com/repos/' + repo + '/contents/' + path,
+    timeout: 20000,
+    headers: {
+      'Authorization': 'Bearer ' + contribCfg.token,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    },
+    data: JSON.stringify({
+      message: '词库增量贡献 ' + n + ' 条（用户脚本采集，待审核合并）',
+      content: utf8ToB64(body),
+      branch: 'main'
+    })
+  }).then(function () {
+    contribSave({});                     /* 已上传的不再重复提交 */
+    done({ ok: true, count: n, path: path });
+  }).catch(function (err) {
+    done({ ok: false, reason: err && err.message ? err.message : String(err) });
+  });
+}
+
+/* 无 Token 用户：生成预填 Issue 链接（body 取前 120 条，避免超 URL 长度上限） */
+function contribIssueURL() {
+  var hits = contribLoad();
+  var keys = Object.keys(hits);
+  var n = keys.length;
+  var list = keys.slice(0, 120).map(function (k) { return '- ' + k + ' → ' + hits[k]; });
+  var body = '以下词条在翻译时词库未命中，由用户脚本自动采集（共 ' + n + ' 条' +
+    (n > 120 ? '，此处列出前 120 条' : '') + '），请审核后合并进 dict/github.zh-CN.json：\n\n' + list.join('\n');
+  return 'https://github.com/' + contribCfg.repo.replace(/^\/+|\/+$/g, '') +
+    '/issues/new?title=' + encodeURIComponent('词库补充：未命中词条 ' + n + ' 条') +
+    '&body=' + encodeURIComponent(body.slice(0, 6000));
+}
+
 
 /* ==================================================================
  * AI 翻译设置面板（仅配置大模型；翻译仍只由 F9 触发）
@@ -3083,6 +3177,13 @@ function openAISettings() {
     '.dict-info b{color:var(--fg);font-weight:500}' +
     '.dict-sub{font-size:11px;color:var(--muted);line-height:1.65;margin-top:1px;word-break:break-word}' +
     '.dict-sub:empty{display:none}' +
+    '.fold{display:block}' +
+    '.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;margin:0}' +
+    '.fold>summary::-webkit-details-marker{display:none}' +
+    '.fold-tip{flex:1;min-width:0;font-weight:400;letter-spacing:0;text-transform:none;font-size:11px;color:var(--muted)}' +
+    '.fold>summary::after{flex:0 0 auto;font-size:11px;color:var(--muted);content:"展开"}' +
+    '.fold[open]>summary{margin-bottom:8px}' +
+    '.fold[open]>summary::after{content:"收起"}' +
     '.hint{font-size:11.5px;color:var(--muted);line-height:1.65;padding:1px 0}' +
     '.hint code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;background:var(--soft);padding:1px 4px;border-radius:4px}' +
     '@media (prefers-color-scheme:dark){.card{--bg:#161b22;--fg:#e6edf3;--muted:#8b949e;--line:#30363d;--soft:#1c2128;--field:#0d1117;--accent:#238636;--accent-h:#2ea043;--ring:rgba(46,160,67,.3);--danger:#f85149;--ok:#3fb950}' +
@@ -3140,6 +3241,7 @@ function openAISettings() {
               '<label class="field"><span>批量条数</span><input type="number" id="batch" min="1" max="100"></label>' +
               '<label class="field"><span>每条字符上限</span><input type="number" id="maxc" min="10" max="5000"></label>' +
               '<label class="field"><span>超时（毫秒）</span><input type="number" id="to" min="1000" max="600000"></label>' +
+              '<label class="field"><span>设置快捷键</span><input type="text" id="openkey" spellcheck="false" placeholder="Alt+N"></label>' +
             '</div>' +
             '<div class="switch-row tight">' +
               '<div class="switch-txt"><b>推理模型关闭思考</b><i>NVIDIA Nemotron 等推理模型需要开启</i></div>' +
@@ -3152,15 +3254,37 @@ function openAISettings() {
             '<div class="sec-t">汉化词库</div>' +
             '<div class="dict-row">' +
               '<div class="dict-info" id="dictinfo">读取中…</div>' +
-              '<button class="btn sm" id="dictupd" type="button">立即更新</button>' +
+              '<button class="btn sm" id="dictupd" type="button" title="每天北京时间 0 点后首次打开自动同步一次；失败依次换 5 个源（GitHub 原始地址 + 4 个镜像）">立即更新</button>' +
             '</div>' +
             '<div class="dict-sub" id="dictsub"></div>' +
-            '<div class="hint">托管于 GitHub <code>dict/github.zh-CN.json</code>，每天 0 点后首次打开同步一次，失败自动换源。</div>' +
           '</div>' +
+          '<details class="sec fold" id="contribfold">' +
+            '<summary class="sec-t">词库回传<span class="fold-tip">采集未命中词条，回传 GitHub</span></summary>' +
+            '<div class="switch-row tight">' +
+              '<div class="switch-txt"><b>采集未命中词条</b><i>词库没翻到、靠 AI / 引擎翻出的短文案记录在本机，默认关闭</i></div>' +
+              '<label class="sw"><input type="checkbox" id="contrib"><span></span></label>' +
+            '</div>' +
+            '<div class="dict-row">' +
+              '<div class="dict-info" id="contribinfo"></div>' +
+              '<button class="btn sm" id="contribpush" type="button">推送到 GitHub</button>' +
+            '</div>' +
+            '<div class="dict-row">' +
+              '<button class="btn sm" id="ccopy" type="button">复制清单</button>' +
+              '<button class="btn sm" id="cissue" type="button">提交 Issue</button>' +
+            '</div>' +
+            '<div class="field" style="margin-top:8px"><span>GitHub Token（需仓库写权限；仅保存在本机）</span>' +
+              '<div class="wrap">' +
+                '<input type="password" id="ctoken" spellcheck="false" autocomplete="off" placeholder="粘贴你的 GitHub Token，仅保存在本机">' +
+                '<button class="eye" id="ceye" type="button" title="显示或隐藏 Token">显示</button>' +
+              '</div>' +
+            '</div>' +
+            '<div class="hint">有 Token：采集词条直接推送为仓库 <code>dict/contribs/</code> 下的 JSON，由维护者审核合并。没有 Token：点「提交 Issue」把清单发到仓库 Issues，同样能进词库。</div>' +
+          '</details>' +
         '</div>' +
         '<div class="foot">' +
           '<div class="status" id="ghx-msg"></div>' +
           '<div class="foot-act">' +
+            '<button class="btn" id="restore" type="button">恢复原文</button>' +
             '<button class="btn" id="test" type="button">测试连接</button>' +
             '<button class="btn primary" id="save" type="button">保存</button>' +
           '</div>' +
@@ -3192,6 +3316,9 @@ function openAISettings() {
     f('to').value = a.timeout || 60000;
     f('think').checked = !!a.thinkingOff;
     f('cache').checked = !!a.cache;
+    f('openkey').value = a.openKey || 'Alt+N';
+    f('contrib').checked = !!contribCfg.enabled;
+    f('ctoken').value = contribCfg.token || '';
   }
   fill();
 
@@ -3224,6 +3351,69 @@ function openAISettings() {
     }
     el.title = s.synced ? '内置 ' + s.builtin + ' + 远端新增 ' + s.remoteNew + ' = 词库 ' + s.dictN + ' 条；AI 记忆 ' + s.aiN + ' 条不计入' : '';
   }
+  /* ---- 词库回传 ---- */
+  function renderContribInfo() {
+    var el = f('contribinfo');
+    if (!el) return;
+    var n = Object.keys(contribLoad()).length;
+    el.innerHTML = contribCfg.enabled
+      ? '本地已采集 <b>' + n + '</b> 条' + (n ? '，可推送到仓库或提交 Issue' : '（翻译时会自动记录）')
+      : '采集未开启：开启后自动记录词库未命中的短文案（仅存本机，默认关闭）';
+  }
+  renderContribInfo();
+
+  f('ceye').addEventListener('click', function () {
+    var inp = f('ctoken'), btn = f('ceye');
+    var show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    btn.textContent = show ? '隐藏' : '显示';
+  });
+
+  f('contribpush').addEventListener('click', function () {
+    applySettings();                       /* 先落盘面板里改的开关 / Token */
+    renderContribInfo();
+    var btn = f('contribpush');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = '上传中…';
+    msg('正在推送采集词条到 ' + contribCfg.repo + ' …');
+    contribPush(function (r) {
+      btn.disabled = false;
+      btn.textContent = '推送到 GitHub';
+      renderContribInfo();
+      if (r.ok) msg('已上传 ' + r.count + ' 条 → ' + r.path + '（推送后本地清单已清空）', 'ok');
+      else msg('上传失败：' + r.reason, 'err');
+    });
+  });
+
+  f('ccopy').addEventListener('click', function () {
+    var hits = contribLoad();
+    var keys = Object.keys(hits);
+    if (!keys.length) { msg('本地没有采集到的词条', 'err'); return; }
+    var text = keys.map(function (k) { return k + ' → ' + hits[k]; }).join('\n');
+    var finish = function () { msg('已复制 ' + keys.length + ' 条到剪贴板', 'ok'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(finish, function () { msg('复制失败：浏览器拒绝了剪贴板权限', 'err'); });
+    } else {
+      msg('当前环境不支持剪贴板，请用「提交 Issue」或「推送到 GitHub」', 'err');
+    }
+  });
+
+  f('cissue').addEventListener('click', function () {
+    applySettings();
+    if (!Object.keys(contribLoad()).length) { msg('本地没有采集到的词条', 'err'); return; }
+    try { window.open(contribIssueURL(), '_blank'); msg('已在新标签页打开预填的 Issue，确认后点提交即可', 'ok'); }
+    catch (e) { msg('无法打开浏览器窗口，请手动复制清单', 'err'); }
+  });
+
+  /* ---- 恢复原文（与菜单「关闭翻译」同一入口） ---- */
+  f('restore').addEventListener('click', function () {
+    if (running) { msg('正在翻译中，请等本轮结束后再恢复原文', 'err'); return; }
+    var n = restoreOriginals();
+    renderDictInfo();                      /* AI 记忆被清掉，词库统计要刷新 */
+    msg(n ? '已恢复原文 ' + n + ' 处（按 F9 可重新翻译）' : '当前页面没有已翻译的内容', n ? 'ok' : '');
+  });
+
   f('dictupd').addEventListener('click', function () {
     var btn = f('dictupd');
     if (btn.disabled) return;
@@ -3261,7 +3451,16 @@ function openAISettings() {
       maxChars: parseInt(f('maxc').value, 10) || 600,
       timeout: parseInt(f('to').value, 10) || 60000,
       thinkingOff: f('think').checked,
-      cache: f('cache').checked
+      cache: f('cache').checked,
+      openKey: (f('openkey').value || '').trim() || 'Alt+N'
+    };
+  }
+
+  function collectContrib() {
+    return {
+      enabled: f('contrib').checked,
+      token: (f('ctoken').value || '').trim(),
+      repo: contribCfg.repo
     };
   }
 
@@ -3273,6 +3472,10 @@ function openAISettings() {
       }
     }
     Store.set(AI_SET_KEY, JSON.stringify(o));
+    var cc = collectContrib();
+    contribCfg.enabled = cc.enabled;
+    contribCfg.token = cc.token;
+    Store.set('contrib_settings', JSON.stringify(cc));
   }
 
   function closePanel() {
@@ -3328,6 +3531,14 @@ try {
   if (typeof GM_registerMenuCommand === 'function') {
     GM_registerMenuCommand('AI 翻译设置', openAISettings);
     GM_registerMenuCommand('立即更新词库', updateDictManual);
+    GM_registerMenuCommand('上传词库增量到 GitHub', function () {
+      var n = Object.keys(contribLoad()).length;
+      if (!n) { toast('本地没有采集到的词条（在设置面板「词库回传」开启采集）'); return; }
+      toast('正在上传 ' + n + ' 条采集词条…');
+      contribPush(function (r) {
+        toast(r.ok ? '已上传 ' + r.count + ' 条 → ' + r.path : '上传失败：' + r.reason);
+      });
+    });
     GM_registerMenuCommand('关闭翻译（恢复原文）', closeTranslation);
   }
 } catch (e) { }
@@ -3441,7 +3652,35 @@ function autoTranslateOnce() {
   else document.addEventListener('DOMContentLoaded', function () { setTimeout(probe, 800); });
 })();
 
+/* 解析「Ctrl+Shift+N」这类组合键描述 → {ctrl,alt,shift,key}；不支持 Meta/Cmd（易与系统冲突） */
+function parseCombo(str) {
+  var parts = String(str || '').trim().toLowerCase().split('+');
+  var mod = { ctrl: false, alt: false, shift: false }, key = '';
+  for (var i = 0; i < parts.length; i++) {
+    var p = parts[i].trim();
+    if (!p) continue;
+    if (p === 'ctrl' || p === 'control') mod.ctrl = true;
+    else if (p === 'alt' || p === 'option') mod.alt = true;
+    else if (p === 'shift') mod.shift = true;
+    else if (p === 'meta' || p === 'cmd' || p === 'command') return null;
+    else key = p;
+  }
+  if (!key || (!/^[a-z0-9]$/.test(key) && !/^f([1-9]|1[0-2])$/.test(key))) return null;
+  return { ctrl: mod.ctrl, alt: mod.alt, shift: mod.shift, key: key };
+}
+
 document.addEventListener('keydown', function (ev) {
+  /* 打开设置面板的快捷键（默认 Alt+N）。注意 Ctrl+N 是浏览器「新建窗口」保留键，网页拦不住 */
+  try {
+    var combo = parseCombo(CFG.ai.openKey);
+    if (combo && !ev.metaKey && !!ev.ctrlKey === combo.ctrl && !!ev.altKey === combo.alt &&
+        !!ev.shiftKey === combo.shift && String(ev.key || '').toLowerCase() === combo.key) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      openAISettings();
+      return;
+    }
+  } catch (e) { }
   if (String(ev.key || '').toLowerCase() !== 'f9') return;
   if (ev.repeat || ev.ctrlKey || ev.metaKey || ev.altKey || ev.shiftKey) return;
   if (focusInEditable()) return;      /* 不劫持输入框里的 F9 */

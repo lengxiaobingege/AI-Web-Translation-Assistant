@@ -15,11 +15,12 @@
 // @homepageURL https://github.com/lengxiaobingege/AI-Web-Translation-Assistant
 // @supportURL  https://github.com/lengxiaobingege/AI-Web-Translation-Assistant/issues
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.4.17
+// @version     1.4.18
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @description Non-Chinese pages auto-translate to Chinese, F9 to retranslate anytime; AI model first with free engine fallback; one shared UI glossary works on every site, replacing hits instantly at zero cost; optional glossary contribution is off by default.
 // @description:zh-CN 非简体中文网页自动翻译成中文，F9 随时重译；AI 大模型优先，失败自动回退免费引擎链；内置通用界面词条库，所有网站共用，命中直接替换、不花额度；可选的词条回传默认关闭。
+// @description:en Non-Chinese pages auto-translate to Chinese, F9 to retranslate anytime; AI model first with free engine fallback; one shared UI glossary works on every site, replacing hits instantly at zero cost; optional glossary contribution is off by default.
 // @tag        翻译
 // @tag        AI
 // @tag        效率工具
@@ -47,7 +48,6 @@
 // @connect     open.bigmodel.cn
 // @connect     api.moonshot.cn
 // @connect     api.siliconflow.cn
-// @connect     gitcn.org
 // @connect     raw.githubusercontent.com
 // @connect     testingcf.jsdelivr.net
 // @connect     cdn.jsdelivr.net
@@ -65,6 +65,27 @@
  *  4) 「词条回传」默认关闭，必须手动点按钮才会向仓库提交词条。
  *  5) 关掉设置里的「非简体中文页面自动翻译」后，只有按 F9 才会发起翻译请求；
  *     启用任一层翻译都会把页面文本发给对应服务，介意的话请勿安装。
+ *
+ * =============== 对外请求与权限清单（发布合规自查） ===============
+ *  本脚本不引用任何外部可执行代码：无 @require / @resource / eval /
+ *  new Function / 动态 <script src>；远端只取 JSON 数据并 JSON.parse。
+ *  @connect 白名单按用途分组，未列出的域名不会发起请求：
+ *    免费引擎   cn.bing.com / www.bing.com / translate.googleapis.com /
+ *               api.mymemory.translated.net
+ *    AI 服务商  integrate.api.nvidia.com / api.deepseek.com / api.openai.com /
+ *               dashscope.aliyuncs.com / open.bigmodel.cn / api.moonshot.cn /
+ *               api.siliconflow.cn（只连设置里选定的那一个）
+ *    词库同步   raw.githubusercontent.com / gh-proxy.com /
+ *               testingcf.jsdelivr.net / cdn.jsdelivr.net（只读 GET）
+ *    词条回传   api.github.com（写操作，需自填 Token，默认关闭、手动触发）
+ *  菜单命令共 5 个：AI 翻译设置 / 立即更新词库 / 上传词库增量到 GitHub /
+ *    提交词库 Issue / 关闭翻译（恢复原文）；页面内不注入任何常驻按钮。
+ *  脚本自身不检查更新、不加载远端脚本：更新交给脚本管理器按 @updateURL 处理；
+ *    Greasy Fork 发布时会自动把 @updateURL / @downloadURL 改写成指向它自己。
+ *  词库同步每天最多一次（跨日首次打开页面时），不是高频轮询。
+ *  按 Greasy Fork 六种 @antifeature（ads / membership / miner / payment /
+ *    referral-link / tracking）逐条核对，本脚本均不涉及，因此不标注。
+ *  @icon 那行是 256x256 PNG 的 data URI，属图标数据，不是加密或混淆代码。
  *
  * ========================= 这个脚本做什么 =========================
  * 通用整页翻译：任何站点，非简体中文页面自动翻成中文，F9 随时重译。
@@ -96,11 +117,10 @@
  *   无划词、无 MutationObserver、不监听路由变化；已是简体中文的页面不改动内容。
  *   （DOMContentLoaded 监听只用于启动自动探测，不读页面文本）
  *   设置入口只在脚本管理器菜单里（「AI 翻译设置」），页面内不注入任何常驻按钮。
- *   一次 TreeWalker 收集文本节点（共享给两个模块，避免重复遍历），按站点分流：
- *     GitHub/gist -> 词条替换 + 属性 + 相对时间 + CSS 规则 -> AI 批量翻译剩余
- *                    文本 -> 有批次失败时引擎链兜底。
- *     其它站点   -> AI 批量翻译优先；AI 不可用 / 部分失败 / 文本超长时，
- *                    剩余的走引擎链（去重 + 并发 + 译文缓存 + 节点上限）。
+ *   一次 TreeWalker 收集文本节点（词条与 AI 两个模块共用，避免重复遍历）。
+ *   所有站点同一条流程：界面词条（含属性 / 相对时间 / CSS 规则）→ AI 批量翻译
+ *    剩余文本 → 引擎链只处理「还没翻的」节点（去重 + 并发 + 译文缓存 + 节点上限）。
+ *   词库全站共用，不再按站点分流；GitHub 与其它站点走的是同一套代码。
  *   执行中 running 锁，连按/长按不重复；焦点在输入框或可编辑区时跳过，不劫持打字。
  *
  * ==================== 运行环境（脚本管理器兼容） ====================

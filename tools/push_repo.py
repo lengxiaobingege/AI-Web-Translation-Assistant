@@ -127,8 +127,10 @@ def pattern_hits(pattern: str, repo_path: str) -> bool:
     """按 git 的常见语义判断路径是否命中单条 .gitignore 规则。"""
     import fnmatch
     pat = pattern.lstrip("/")
-    if pat.endswith("/"):                        # 目录规则：dist/
-        return repo_path.startswith(pat) or f"/{pat}" in f"/{repo_path}"
+    if pat.endswith("/"):                        # 目录规则：dist/、备份_*/
+        d = pat.rstrip("/")
+        segs = repo_path.split("/")
+        return any(fnmatch.fnmatch("/".join(segs[:i]), d) for i in range(1, len(segs)))
     if fnmatch.fnmatch(repo_path, pat):          # tools/panel_*.png
         return True
     if "/" not in pat:                           # 无斜杠规则匹配任意层级文件名

@@ -35,10 +35,12 @@ function mockEl(tag) {
   return el;
 }
 
-async function run({ aiMode, texts, settings, host, lang, pageText, manual = true, presses = 1, snapshots = null, dictMode = 'off', waitDict = false, extraDict = null }) {
+async function run({ aiMode, texts, settings, host, lang, pageText, manual = true, presses = 1, snapshots = null, dictMode = 'off', waitDict = false, extraDict = null, contrib = null }) {
   const calls = [];
   const payloads = [];
+  const headers = [];
   const dictCalls = [];
+  const ghCalls = [];
   const stored = {};
   const menus = {};
   const dictPayload = () => {
@@ -96,15 +98,29 @@ async function run({ aiMode, texts, settings, host, lang, pageText, manual = tru
   const sandbox = {
     console, setTimeout, clearTimeout, JSON, Promise, WeakSet, Set, Map, Math, Date, Error, String, Object, Array, RegExp,
     NodeFilter: { SHOW_TEXT: 4 },
+    btoa: s => Buffer.from(s, 'binary').toString('base64'),
+    atob: s => Buffer.from(s, 'base64').toString('binary'),
+    escape: escape, unescape: unescape,
     location: { hostname: host || 'example.com', href: 'https://' + (host || 'example.com') + '/' },
     document,
-    GM_getValue: (k, d) => (k === 'ghx2_ai_settings' ? aiSettings : d),
+    GM_getValue: (k, d) => {
+      if (k in stored) return stored[k];          // 先回读 GM_setValue 写入的值
+      if (k === 'ghx2_ai_settings') return aiSettings;
+      if (k === 'ghx2_contrib_settings' && contrib) return JSON.stringify(contrib);
+      return d;
+    },
     GM_setValue: (k, v) => { stored[k] = v; },
     GM_registerMenuCommand: (name, fn) => { menus[name] = fn; },
     GM_xmlhttpRequest: (o) => {
       calls.push(o.url);
       payloads.push(String(o.data || ''));
+      headers.push(o.headers || {});
       timers.push(() => {
+        if (/api\.github\.com/.test(o.url)) {
+          ghCalls.push({ url: o.url, data: String(o.data || ''), headers: o.headers || {} });
+          o.onload({ status: 201, responseText: JSON.stringify({ content: { path: 'dict/contribs/x.json' } }) });
+          return;
+        }
         const isDict = /dict\/github\.zh-CN\.json/.test(o.url);
         if (isDict) {
           dictCalls.push(o.url);
@@ -179,8 +195,13 @@ async function run({ aiMode, texts, settings, host, lang, pageText, manual = tru
   }
   const toasts = () => (body.children || []).map(c => c.textContent).join(' ／ ');
   return {
-    calls, payloads, nodes, toasts, body, dictCalls, stored, menus, drain,
-    press: () => keyHandler({ key: 'F9', repeat: false, preventDefault() {}, stopPropagation() {} })
+    calls, payloads, headers, ghCalls, nodes, toasts, body, dictCalls, stored, menus, drain,
+    press: () => keyHandler({ key: 'F9', repeat: false, preventDefault() {}, stopPropagation() {} }),
+    key: (k, mods) => {
+      const ev = Object.assign({ key: k, repeat: false, preventDefault() { ev.defaultPrevented = true; }, stopPropagation() {} }, mods || {});
+      keyHandler(ev);
+      return ev;
+    }
   };
 }
 
@@ -371,6 +392,43 @@ const TW_PAGE = ('這個頁面使用繁體中文撰寫，用來驗證自動翻�
     }
     check('再次 F9 重新翻译', ai(r).length >= 2 && done,
       'ai=' + ai(r).length + ' 节点=' + r.nodes.map(n => n.nodeValue).join(' | '));
+  }
+
+  console.log('场景 19：词库回传 —— 采集未命中词条并推送到 GitHub');
+  {
+    const r = await run({
+      aiMode: 'ok', texts: ['Zebra crossing ahead'],
+      contrib: { enabled: true, token: 'test-token-abc123', repo: 'lengxiaobingege/AI-Web-Translation-Assistant.' }
+    });
+    const hits = JSON.parse(r.stored['ghx2_contrib_hits'] || '{}');
+    check('采集到 AI 译文', hits['Zebra crossing ahead'] === '译:Zebra crossing ahead', JSON.stringify(hits));
+    const upload = r.menus['上传词库增量到 GitHub'];
+    check('上传菜单已注册', typeof upload === 'function', typeof upload);
+    upload();
+    await r.drain();
+    check('发出 Contents API 请求', r.ghCalls.length === 1, JSON.stringify(r.ghCalls.map(c => c.url)));
+    if (r.ghCalls.length) {
+      const c = r.ghCalls[0];
+      check('推送到 dict/contribs/ 目录', /\/contents\/dict\/contribs\/contrib-\d{8}-\d{6}\.json$/.test(c.url), c.url);
+      check('带 Authorization 头', /^Bearer test-token/.test(c.headers.Authorization || ''), c.headers.Authorization);
+      const body = JSON.parse(c.data);
+      check('content 为 base64 且可解码', typeof body.content === 'string' &&
+        JSON.parse(Buffer.from(body.content, 'base64').toString('utf8')).hits['Zebra crossing ahead'] === '译:Zebra crossing ahead');
+    }
+    check('上传成功后本地清单清空', r.stored['ghx2_contrib_hits'] === '{}', r.stored['ghx2_contrib_hits']);
+  }
+
+  console.log('场景 20：未填 Token 时上传 → 提示先配置；快捷键不干扰 F9');
+  {
+    const r = await run({ aiMode: 'ok', texts: ['Zebra crossing ahead'], contrib: { enabled: true, token: '' } });
+    r.menus['上传词库增量到 GitHub']();
+    await r.drain();
+    check('提示先填 Token', r.ghCalls.length === 0 && /Token/.test(r.toasts()), r.toasts());
+    const ev = r.key('n', { altKey: true });
+    check('Alt+N 被快捷键处理（preventDefault）', ev.defaultPrevented === true);
+    r.press();
+    await r.drain();
+    check('F9 仍正常翻译', r.nodes[0].nodeValue === '译:Zebra crossing ahead', r.nodes[0].nodeValue);
   }
 
   console.log('\n结果: ' + pass + ' 通过 / ' + fail + ' 失败');

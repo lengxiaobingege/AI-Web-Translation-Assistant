@@ -7,7 +7,7 @@ name: 词库 Issue 接收
 # 也可以从 Actions 页手动触发并填写 Issue 编号。
 #
 # 解析结果写入 dict/contribs/contrib-issue-<编号>.json，进入与脚本回传相同的队列；
-# 正式合并由每天 12:40 的「词库贡献合并」自动完成。
+# 正式合并由每天 12:20 的「词库贡献合并」自动完成。
 on:
   issues:
     types: [opened, labeled]

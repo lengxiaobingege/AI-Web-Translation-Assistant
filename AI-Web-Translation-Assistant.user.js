@@ -4,6 +4,8 @@
 //           - https://github.com/k1995/github-i18n-plugin —— 界面词条（UI 文案）与替换规则
 //           - https://github.com/syhyz1990/translate —— 整页翻译引擎链
 //           来源项目的代码、词条及相关权益归各自原作者所有，本脚本仅包含合并与二创新增内容。
+//           两个上游仓库均未声明开源许可（无 LICENSE 文件），本脚本不代其授权，
+//           也不对合并后的整体声明 MIT 等许可；详见 README「许可」章节。
 // @name        AI-Web-Translation-Assistant
 // @name:zh-CN  AI 网页翻译助手
 // @name:en     AI Web Translation Assistant
@@ -11,11 +13,14 @@
 // @homepageURL https://github.com/lengxiaobingege/AI-Web-Translation-Assistant
 // @supportURL  https://github.com/lengxiaobingege/AI-Web-Translation-Assistant/issues
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.4.15
+// @version     1.4.16
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
-// @description Non-Chinese pages auto-translate to Chinese, F9 to retranslate anytime; AI model first with free engine fallback; built-in GitHub UI glossary replaces hits instantly at zero cost.
+// @description Non-Chinese pages auto-translate to Chinese, F9 to retranslate anytime; AI model first with free engine fallback; one shared UI glossary works on every site, replacing hits instantly at zero cost.
 // @description:zh-CN 非简体中文网页自动翻译成中文，F9 随时重译；AI 大模型优先，失败自动回退免费引擎链；内置通用界面词条库，所有网站共用，命中直接替换、不花额度。
+// @tag        翻译
+// @tag        AI
+// @tag        效率工具
 // @icon       data:image/png;base64,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
 // @match       *://*/*
 // @run-at      document-idle
@@ -46,10 +51,19 @@
 // @connect     cdn.jsdelivr.net
 // @connect     gh-proxy.com
 // @connect     api.github.com
-// @license     MIT
 // ==/UserScript==
 
 /*
+ * ========================= 数据与隐私 =========================
+ *  1) 自动翻译默认开启，会把当前页面的可见文本发送给你在设置里选定的 AI 服务商，
+ *     AI 不可用时改发 Bing / MyMemory / Google 免费翻译接口。这是整页翻译的实现方式，
+ *     不涉及用户身份、Cookie 或浏览历史的收集。
+ *  2) API Key 只保存在本机脚本管理器存储里，不写入任何远端；公开版内置 Key 为空。
+ *  3) 界面词条库是只读 GET（GitHub raw / 镜像），内容为纯 JSON 数据，不含可执行代码。
+ *  4) 「词条回传」默认关闭，必须手动点按钮才会向仓库提交词条。
+ *  5) 关掉设置里的「非简体中文页面自动翻译」后，只有按 F9 才会发起翻译请求；
+ *     启用任一层翻译都会把页面文本发给对应服务，介意的话请勿安装。
+ *
  * ========================= 这个脚本做什么 =========================
  * 通用整页翻译：任何站点，非简体中文页面自动翻成中文，F9 随时重译。
  * 三层按优先级串行，前一层能解决就不麻烦后一层：

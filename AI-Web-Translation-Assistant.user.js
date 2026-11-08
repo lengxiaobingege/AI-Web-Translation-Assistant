@@ -9,7 +9,7 @@
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.4.0
+// @version     1.4.1
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @description 合并版：自动检测页面语言，非简体中文自动翻译（英文/日文/韩文/德文等，繁体转简体），F9 可随时手动重译；AI 大模型优先、不可用时回退引擎链。
@@ -2942,7 +2942,7 @@ function dictSync(opts, cb) {
 function updateDictManual() {
   toast('正在更新词库…');
   dictSync({ force: true }, function (r) {
-    if (r.ok) toast('词库已更新：v' + r.version + ' · ' + r.count + ' 条（源：' + r.source + '）');
+    if (r.ok) toast('词库已更新：v' + r.version + ' · 远端 ' + r.count + ' 条（源：' + r.source + '）');
     else toast('词库更新失败：' + r.reason);
   });
 }
@@ -3032,10 +3032,12 @@ function openAISettings() {
     '.sw input:checked+span{background:var(--accent)}' +
     '.sw input:checked+span::after{transform:translateX(16px)}' +
     '.sw input:focus-visible+span{box-shadow:0 0 0 3px var(--ring)}' +
-    '.foot{display:flex;align-items:center;gap:8px;padding:13px 20px;border-top:1px solid var(--line);background:var(--soft)}' +
-    '.status{flex:1;min-width:0;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+    '.foot{display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:12px 20px 13px;border-top:1px solid var(--line);background:var(--soft)}' +
+    '.status{display:none;font-size:12px;line-height:1.6;color:var(--muted);word-break:break-word;white-space:normal;max-height:5.2em;overflow:auto}' +
+    '.status.show{display:block}' +
     '.status.ok{color:var(--ok)}' +
     '.status.err{color:var(--danger)}' +
+    '.foot-act{display:flex;align-items:center;justify-content:flex-end;gap:8px}' +
     '.btn{height:32px;padding:0 14px;border-radius:8px;font:inherit;font-weight:500;cursor:pointer;border:1px solid var(--line);background:var(--bg);color:var(--fg);transition:background .15s,border-color .15s}' +
     '.btn:hover{background:var(--soft)}' +
     '.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}' +
@@ -3121,8 +3123,10 @@ function openAISettings() {
         '</div>' +
         '<div class="foot">' +
           '<div class="status" id="ghx-msg"></div>' +
-          '<button class="btn" id="test" type="button">测试连接</button>' +
-          '<button class="btn primary" id="save" type="button">保存</button>' +
+          '<div class="foot-act">' +
+            '<button class="btn" id="test" type="button">测试连接</button>' +
+            '<button class="btn primary" id="save" type="button">保存</button>' +
+          '</div>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -3187,7 +3191,10 @@ function openAISettings() {
       btn.disabled = false;
       btn.textContent = '立即更新';
       renderDictInfo();
-      if (r.ok) msg('词库已更新：v' + r.version + '，共 ' + r.count + ' 条（源：' + r.source + '）', 'ok');
+      if (r.ok) {
+        var tot = I18n.dictStats().total;
+        msg('词库已更新：v' + r.version + ' · 远端 ' + r.count + ' 条 / 合计 ' + tot + ' 条 · 源：' + r.source, 'ok');
+      }
       else msg(r.skipped ? r.reason : '更新失败：' + r.reason, r.skipped ? '' : 'err');
     });
   });
@@ -3196,7 +3203,7 @@ function openAISettings() {
   function msg(t, kind) {
     var el = f('ghx-msg');
     el.textContent = t || '';
-    el.className = 'status' + (kind ? ' ' + kind : '');
+    el.className = 'status' + (t ? ' show' : '') + (kind ? ' ' + kind : '');
   }
 
   function collect() {

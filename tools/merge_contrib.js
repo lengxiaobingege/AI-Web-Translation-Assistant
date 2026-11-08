@@ -10,6 +10,9 @@
  *   node tools/merge_contrib.js            # 合并 dict/contribs/*.json
  *   node tools/merge_contrib.js --dry      # 只看统计
  *   node tools/merge_contrib.js --force    # 覆盖同名条目
+ *
+ * 合并成功后：自动删除已读取的 contribs/*.json（内容已进正式词库，避免重复合并），
+ * 并把 version 的 -rN 后缀 +1（如 2026.11.08-r1 → 2026.11.08-r2），方便面板上看出变化。
  */
 const fs = require('fs');
 const path = require('path');
@@ -69,6 +72,17 @@ if (!added && !overwritten) { console.log('没有需要写入的变更。'); pro
 
 dictFile.dict = dict;
 dictFile.count = Object.keys(dict).length;
+if (typeof dictFile.version === 'string') {
+  if (/-r\d+$/.test(dictFile.version)) dictFile.version = dictFile.version.replace(/-r(\d+)$/, (_, n) => '-r' + (Number(n) + 1));
+  else dictFile.version += '-r1';
+}
 fs.writeFileSync(dictPath, JSON.stringify(dictFile, null, 2) + '\n', 'utf8');
-console.log('已写入 ' + path.relative(root, dictPath) + '，当前共 ' + dictFile.count + ' 条。');
-console.log('下一步：提交词库改动（脚本每天 0 点后首次访问自动同步）；建议同时清理已合并的 dict/contribs 文件。');
+
+/* 清理已合并的贡献文件，防止下次重复统计 */
+let cleaned = 0;
+for (const f of files) {
+  try { fs.unlinkSync(path.join(contribDir, f)); cleaned++; } catch (e) { /* 忽略单个文件失败 */ }
+}
+
+console.log('已写入 ' + path.relative(root, dictPath) + '，当前共 ' + dictFile.count + ' 条，version ' + dictFile.version);
+console.log('已清理贡献文件 ' + cleaned + ' 个。下一步：提交词库改动（脚本每天 0 点后首次访问自动同步）。');

@@ -9,7 +9,7 @@
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.4.8
+// @version     1.4.9
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @description 合并版：自动检测页面语言，非简体中文自动翻译（英文/日文/韩文/德文等，繁体转简体），F9 可随时手动重译；AI 大模型优先、不可用时回退引擎链。
@@ -36,8 +36,7 @@
 // @connect     raw.githubusercontent.com
 // @connect     testingcf.jsdelivr.net
 // @connect     cdn.jsdelivr.net
-// @connect     jsd.onmicrosoft.cn
-// @connect     ghfast.top
+// @connect     gh-proxy.com
 // @connect     api.github.com
 // @license     MIT
 // ==/UserScript==
@@ -144,14 +143,12 @@ var CFG = {
   dictSources: [
     { name: 'GitHub 原始地址',
       url: 'https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/dict/github.zh-CN.json' },
+    { name: 'gh-proxy 反代（国内）',
+      url: 'https://gh-proxy.com/https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/dict/github.zh-CN.json' },
     { name: 'jsDelivr (Cloudflare)',
       url: 'https://testingcf.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/dict/github.zh-CN.json' },
     { name: 'jsDelivr',
-      url: 'https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/dict/github.zh-CN.json' },
-    { name: 'jsDelivr (国内域名)',
-      url: 'https://jsd.onmicrosoft.cn/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/dict/github.zh-CN.json' },
-    { name: 'ghfast 反代',
-      url: 'https://ghfast.top/https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/dict/github.zh-CN.json' }
+      url: 'https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/dict/github.zh-CN.json' }
   ],
   descTranslate: false,         /* 仓库描述翻译按钮已移除（接口 400） */
   githubFallback: 'onFailure',  /* onFailure | always | never：AI 失败时是否用引擎链兜底 */
@@ -373,13 +370,24 @@ function openContribIssue(cb) {
   }
   var plan = contribIssueURL();
   if (!plan) { done('本地没有采集到的词条', 'err'); return; }
+  /* 先把正文塞进剪贴板：github.com 打不开的用户直接把这段发给维护者就行，
+     不用再自己整理格式 */
+  function keepCopy() {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(plan.body).then(null, function () { });
+      }
+    } catch (e) { }
+  }
   try {
+    keepCopy();
     window.open(plan.url, '_blank');
     done('已打开预填 Issue：本次 ' + plan.count + ' 条' + (plan.left
       ? '，还剩 ' + plan.left + ' 条（再点一次接着提）'
-      : '，本地清单已全部提交过'), 'ok');
+      : '，本地清单已全部提交过') + '。打不开 GitHub 的话，正文已复制到剪贴板，直接发给维护者即可', 'ok');
   } catch (e) {
-    done('无法打开浏览器窗口，请改用「复制清单」手动粘贴', 'err');
+    keepCopy();
+    done('打不开 GitHub 页面（国内常见）。已把 ' + plan.count + ' 条正文复制到剪贴板，直接发给维护者即可', 'ok');
   }
 }
 
@@ -2969,35 +2977,57 @@ function dictSync(opts, cb) {
 
   DICT_SYNCING = true;
   var list = CFG.dictSources.slice();
-  var idx = 0, errors = [];
+  var errors = [];
+  var settled = false;
 
-  function finish(res) { DICT_SYNCING = false; done(res); }
+  function finish(res) {
+    if (settled) return;
+    settled = true;
+    DICT_SYNCING = false;
+    done(res);
+  }
 
-  function next() {
-    if (idx >= list.length) {
-      finish({ ok: false, reason: '全部源均失败（' + errors.join(' / ') + '）' });
-      return;
-    }
-    var src = list[idx++];
-    xhr({ url: src.url, timeout: CFG.dict.timeout }).then(function (text) {
-      var body = String(text || '').trim();
-      if (!body || body.charAt(0) !== '{') throw new Error('返回内容不是 JSON（多为反代错误页）');
-      var data = null;
-      try { data = JSON.parse(body); } catch (e) { throw new Error('JSON 解析失败'); }
-      var n = (data && data.dict) ? Object.keys(data.dict).length : 0;
-      if (!n || n < (CFG.dict.minEntries || 100)) throw new Error('词条数异常（' + n + ' 条）');
-      var added = I18n.mergeRemote(data);
-      Store.set(DICT_DATA_KEY, body);
-      Store.set(DICT_META_KEY, JSON.stringify({
-        day: today, version: data.version || '', count: n, source: src.name, ts: Date.now()
-      }));
-      finish({ ok: true, version: data.version || '', count: n, added: added, source: src.name });
-    }).catch(function (err) {
+  /* 单源：取回 → 校验 → 写入。已在竞速中胜出就什么都不做，避免重复写缓存 */
+  function tryOne(src) {
+    return xhr({ url: src.url, timeout: CFG.dict.timeout }).then(function (text) {
+      if (settled) return;
+      try {
+        var body = String(text || '').trim();
+        if (!body || body.charAt(0) !== '{') throw new Error('返回内容不是 JSON（多为反代错误页）');
+        var data = null;
+        try { data = JSON.parse(body); } catch (e) { throw new Error('JSON 解析失败'); }
+        var n = (data && data.dict) ? Object.keys(data.dict).length : 0;
+        if (!n || n < (CFG.dict.minEntries || 100)) throw new Error('词条数异常（' + n + ' 条）');
+        if (settled) return;               /* 校验期间别的源已胜出 */
+        var added = I18n.mergeRemote(data);
+        Store.set(DICT_DATA_KEY, body);
+        Store.set(DICT_META_KEY, JSON.stringify({
+          day: today, version: data.version || '', count: n, source: src.name, ts: Date.now()
+        }));
+        finish({ ok: true, version: data.version || '', count: n, added: added, source: src.name });
+      } catch (e) {                        /* 校验失败：记下来，交给下一个源 */
+        errors.push(src.name + '：' + (e && e.message ? e.message : e));
+      }
+    }, function (err) {
       errors.push(src.name + '：' + (err && err.message ? err.message : err));
-      next();
     });
   }
-  next();
+
+  /* 前 2 个源并发：GitHub 原始地址（海外快）与国内 jsDelivr 域名（国内快）同时发，
+     谁先返回有效词库用谁 —— 国内用户不用等被墙的源耗满超时。都没成再串行试剩下 3 个镜像 */
+  var head = list.slice(0, Math.min(2, list.length));
+  var tail = list.slice(head.length);
+  Promise.all(head.map(tryOne)).then(function () {
+    if (settled) return;
+    (function next() {
+      if (settled) return;
+      if (!tail.length) {
+        finish({ ok: false, reason: '全部源均失败（' + errors.join(' / ') + '）' });
+        return;
+      }
+      tryOne(tail.shift()).then(next);
+    })();
+  });
 }
 
 /* 供菜单与设置面板共用的手动更新入口 */
@@ -3031,15 +3061,52 @@ var CONTRIB_SENT_KEY = 'contrib_sent';   /* 已经提交过 Issue 的键，避�
 var CONTRIB_MAX = 500;                  /* 本地最多记多少条 */
 var CONTRIB_ISSUE_CAP = 300;            /* 单条 Issue 最多列多少条（与解析端上限一致） */
 var CONTRIB_URL_BUDGET = 6000;          /* body 编码后的长度上限，防止 GitHub 414 */
-var contribCfg = { enabled: false, token: '', repo: 'lengxiaobingege/AI-Web-Translation-Assistant' };
+var contribCfg = {
+  enabled: false, token: '', repo: 'lengxiaobingege/AI-Web-Translation-Assistant',
+  mirror: '',          /* 自定义 API 镜像前缀，空 = 用内置 gh-proxy */
+  mirrorOnly: false    /* true = 直连都不试，直接走镜像（api.github.com 完全不可达时用） */
+};
 try {
   var _cc = JSON.parse(Store.get('contrib_settings', '{}')) || {};
   if (_cc && typeof _cc === 'object') {
     if (typeof _cc.enabled === 'boolean') contribCfg.enabled = _cc.enabled;
     if (typeof _cc.token === 'string') contribCfg.token = _cc.token;
     if (typeof _cc.repo === 'string' && _cc.repo) contribCfg.repo = _cc.repo;
+    if (typeof _cc.mirror === 'string') contribCfg.mirror = _cc.mirror;
+    if (typeof _cc.mirrorOnly === 'boolean') contribCfg.mirrorOnly = _cc.mirrorOnly;
   }
 } catch (e) { }
+
+/* GitHub API 统一出口：直连 api.github.com 不通时自动换 gh-proxy 镜像。
+   ① 只有网络层失败（被墙、超时、断网）才换镜像；GitHub 真的回了 401/403 就原样报错，
+      避免同一个写请求被重复发两次。
+   ② 镜像会把请求原样转给 GitHub，Token 必然经过第三方服务器 —— 所以面板里把这一点
+      标红写明，并建议用「只给该仓库 Contents + Issues 写权限」的细粒度 Token。
+   ③ 用户可以在设置里填自己的镜像地址，或者选择「只走镜像」。 */
+var GH_API_BASE = 'https://api.github.com';
+var GH_API_MIRROR = 'https://gh-proxy.com/https://api.github.com';
+
+function ghApi(path, opts) {
+  opts = opts || {};
+  var method = opts.method || 'GET';
+  var headers = opts.headers || {};
+  var data = opts.data;
+  var timeout = opts.timeout || 12000;
+  function send(base, t) {
+    return xhr({
+      method: method, url: base.replace(/\/+$/, '') + path,
+      timeout: t, headers: headers, data: data
+    });
+  }
+  if (contribCfg.mirrorOnly) return send(contribCfg.mirror || GH_API_MIRROR, timeout);
+  return send(GH_API_BASE, Math.min(timeout, 6000)).catch(function (err) {
+    var msg = err && err.message ? err.message : String(err);
+    if (/^HTTP /.test(msg)) throw err;
+    return send(contribCfg.mirror || GH_API_MIRROR, timeout).catch(function (e2) {
+      throw new Error(msg + '；镜像也失败：' + (e2 && e2.message ? e2.message : e2));
+    });
+  });
+}
 
 function contribLoad() {
   try { var o = JSON.parse(Store.get(CONTRIB_KEY, '{}')); return (o && typeof o === 'object') ? o : {}; }
@@ -3086,9 +3153,8 @@ function contribPush(cb) {
   var name = 'contrib-' + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '-' + p2(d.getHours()) + p2(d.getMinutes()) + p2(d.getSeconds()) + '.json';
   var path = 'dict/contribs/' + name;
   var body = JSON.stringify({ schema: 1, from: 'userscript', count: n, hits: hits }, null, 2);
-  xhr({
+  ghApi('/repos/' + repo + '/contents/' + path, {
     method: 'PUT',
-    url: 'https://api.github.com/repos/' + repo + '/contents/' + path,
     timeout: 20000,
     headers: {
       'Authorization': 'Bearer ' + contribCfg.token,
@@ -3163,6 +3229,7 @@ function contribIssueURL() {
     url: 'https://github.com/' + contribCfg.repo.replace(/^\/+|\/+$/g, '') +
       '/issues/new?title=' + encodeURIComponent('词库补充：未命中词条 ' + picked.length + ' 条') +
       '&body=' + encodeURIComponent(body),
+    body: body,
     count: picked.length,
     total: sel.total,
     left: contribIssueLeft(sel)
@@ -3197,9 +3264,8 @@ function contribIssueCreate(cb) {
   function post(canLabel) {
     var payload = { title: '词库补充：未命中词条 ' + sel.picked.length + ' 条', body: body };
     if (canLabel) payload.labels = ['词库贡献'];
-    return xhr({
+    return ghApi('/repos/' + repo + '/issues', {
       method: 'POST',
-      url: 'https://api.github.com/repos/' + repo + '/issues',
       timeout: 20000,
       headers: auth,
       data: JSON.stringify(payload)
@@ -3210,7 +3276,7 @@ function contribIssueCreate(cb) {
     if (typeof o === 'string') { try { o = JSON.parse(o); } catch (e) { o = {}; } }
     return o || {};
   }
-  xhr({ method: 'GET', url: 'https://api.github.com/repos/' + repo, timeout: 15000, headers: auth })
+  ghApi('/repos/' + repo, { method: 'GET', timeout: 15000, headers: auth })
     .then(function (res) {
       var info = parse(res);
       return post(!!(info.permissions && info.permissions.push));
@@ -3340,6 +3406,7 @@ function openAISettings() {
     '.fold[open]>summary::after{content:"收起"}' +
     '.hint{font-size:11.5px;color:var(--muted);line-height:1.65;padding:1px 0}' +
     '.hint code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;background:var(--soft);padding:1px 4px;border-radius:4px}' +
+    '.hint.warn{color:#d97706;background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.35);border-radius:6px;padding:6px 8px;margin-top:6px}' +
     '@media (prefers-color-scheme:dark){.card{--bg:#161b22;--fg:#e6edf3;--muted:#8b949e;--line:#30363d;--soft:#1c2128;--field:#0d1117;--accent:#238636;--accent-h:#2ea043;--ring:rgba(46,160,67,.3);--danger:#f85149;--ok:#3fb950}' +
       '.mask{background:rgba(1,4,9,.68)}input::placeholder{color:#6e7681}' +
       '.body{scrollbar-color:#484f58 transparent}.body::-webkit-scrollbar-thumb{background:#484f58;background-clip:padding-box}.body::-webkit-scrollbar-thumb:hover{background:#5b646e;background-clip:padding-box}}' +
@@ -3408,7 +3475,7 @@ function openAISettings() {
             '<div class="sec-t">汉化词库</div>' +
             '<div class="dict-row">' +
               '<div class="dict-info" id="dictinfo">读取中…</div>' +
-              '<button class="btn sm" id="dictupd" type="button" title="每天北京时间 0 点后首次打开自动同步一次；失败依次换 5 个源（GitHub 原始地址 + 4 个镜像）">立即更新</button>' +
+              '<button class="btn sm" id="dictupd" type="button" title="每天北京时间 0 点后首次打开自动同步一次；GitHub 原始地址与 gh-proxy 反代同时发（谁先到用谁），失败再依次换 jsDelivr 两个域名">立即更新</button>' +
             '</div>' +
             '<div class="dict-sub" id="dictsub"></div>' +
           '</div>' +
@@ -3432,7 +3499,15 @@ function openAISettings() {
                 '<button class="eye" id="ceye" type="button" title="显示或隐藏 Token">显示</button>' +
               '</div>' +
             '</div>' +
+            '<div class="field" style="margin-top:8px"><span>API 镜像（可不填，直连不通时自动启用）</span>' +
+              '<input type="text" id="cmirror" spellcheck="false" autocomplete="off" placeholder="' + GH_API_MIRROR + '">' +
+            '</div>' +
+            '<div class="switch-row tight">' +
+              '<div class="switch-txt"><b>只走镜像</b><i>api.github.com 完全打不开时打开：连直连都不试，直接走镜像</i></div>' +
+              '<label class="sw"><input type="checkbox" id="cmironly"><span></span></label>' +
+            '</div>' +
             '<div class="hint">两种回传方式：<b>推送到 GitHub</b> 直接写 <code>dict/contribs/</code>（需 Token）；<b>提交 Issue</b> 把清单发成 Issue——填了 Token 会用 API 建单（一次最多 300 条），没填就打开预填页面（按长度自动分批）。词条每天 12:40 合并进正式词库。</div>' +
+            '<div class="hint warn">走镜像时，你的 Token 会经过第三方镜像服务器。建议改用<b>细粒度 Token</b>，只勾这一个仓库的 Contents 与 Issues 写权限，泄露也能一键撤销。介意的话把镜像填成你自己搭的地址。</div>' +
           '</details>' +
         '</div>' +
         '<div class="foot">' +
@@ -3473,6 +3548,8 @@ function openAISettings() {
     f('openkey').value = a.openKey || 'Alt+N';
     f('contrib').checked = !!contribCfg.enabled;
     f('ctoken').value = contribCfg.token || '';
+    f('cmirror').value = contribCfg.mirror || '';
+    f('cmironly').checked = !!contribCfg.mirrorOnly;
   }
   fill();
 
@@ -3615,7 +3692,9 @@ function openAISettings() {
     return {
       enabled: f('contrib').checked,
       token: (f('ctoken').value || '').trim(),
-      repo: contribCfg.repo
+      repo: contribCfg.repo,
+      mirror: (f('cmirror').value || '').trim(),
+      mirrorOnly: f('cmironly').checked
     };
   }
 
@@ -3630,6 +3709,8 @@ function openAISettings() {
     var cc = collectContrib();
     contribCfg.enabled = cc.enabled;
     contribCfg.token = cc.token;
+    contribCfg.mirror = cc.mirror;
+    contribCfg.mirrorOnly = cc.mirrorOnly;
     Store.set('contrib_settings', JSON.stringify(cc));
   }
 

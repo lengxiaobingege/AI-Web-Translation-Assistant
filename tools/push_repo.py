@@ -91,6 +91,8 @@ def guard_artifact(local: pathlib.Path):
 
     早期把打包好的扩展 zip 直接提交进 dist/，导致仓库里躺着二进制，
     每次发版都要多推一份、还无法 diff。这里直接拦，强制走本地构建 + 单独分发。
+    除了按后缀/目录硬拦，还会复查 .gitignore：被它排除的东西同样不该进仓库
+    （曾经把开发用的 tools/preview_panel_*.html 一口气推上去，就是漏了这一步）。
     """
     try:
         repo_path = local.relative_to(ROOT).as_posix()
@@ -102,6 +104,36 @@ def guard_artifact(local: pathlib.Path):
     for d in ARTIFACT_DIRS:
         if repo_path.startswith(d):
             raise SystemExit(f"[拒绝] {repo_path} 位于产物目录 {d}，仓库只放源码")
+    for pat in gitignore_patterns():
+        if pattern_hits(pat, repo_path):
+            raise SystemExit(f"[拒绝] {repo_path} 命中 .gitignore 规则「{pat}」，"
+                             f"这类本地文件不进仓库；确需入库请先把它从 .gitignore 移除")
+
+
+def gitignore_patterns():
+    """读出 .gitignore 里的有效模式（跳过空行与注释）。"""
+    p = ROOT / ".gitignore"
+    if not p.exists():
+        return []
+    out = []
+    for line in p.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line and not line.startswith("#"):
+            out.append(line)
+    return out
+
+
+def pattern_hits(pattern: str, repo_path: str) -> bool:
+    """按 git 的常见语义判断路径是否命中单条 .gitignore 规则。"""
+    import fnmatch
+    pat = pattern.lstrip("/")
+    if pat.endswith("/"):                        # 目录规则：dist/
+        return repo_path.startswith(pat) or f"/{pat}" in f"/{repo_path}"
+    if fnmatch.fnmatch(repo_path, pat):          # tools/panel_*.png
+        return True
+    if "/" not in pat:                           # 无斜杠规则匹配任意层级文件名
+        return fnmatch.fnmatch(repo_path.rsplit("/", 1)[-1], pat)
+    return False
 
 
 def delete_file(repo_path: str, message: str):

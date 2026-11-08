@@ -1,15 +1,16 @@
 name: 词库 Issue 接收
 
 # 用户没有 GitHub Token 时，会通过「提交 Issue」把采集到的词条发过来。
-# 为避免任何人开 Issue 就往仓库写文件，本工作流**只在维护者给 Issue 打上
-# 「词库贡献」标签时**才解析（打标 = 人工确认要处理这条）。
+# 两条入口：
+#   1) 维护者自己（OWNER / MEMBER / COLLABORATOR）开的 Issue —— 作者即审核人，直接解析；
+#   2) 其他人开的 Issue —— 必须由维护者打上「词库贡献」标签才解析（打标 = 人工确认）。
 # 也可以从 Actions 页手动触发并填写 Issue 编号。
 #
 # 解析结果写入 dict/contribs/contrib-issue-<编号>.json，进入与脚本回传相同的队列；
-# 正式合并仍需维护者手动触发「词库贡献合并」。
+# 正式合并由每天 12:40 的「词库贡献合并」自动完成。
 on:
   issues:
-    types: [labeled]
+    types: [opened, labeled]
   workflow_dispatch:
     inputs:
       issue_number:
@@ -27,10 +28,11 @@ concurrency:
 jobs:
   intake:
     name: 解析 Issue 词条
-    # 打标触发时只认「词库贡献」这个标签；手动触发则无条件执行
+    # 手动触发无条件执行；打标只看「词库贡献」；自己人开的 Issue 直接放行
     if: |
       github.event_name == 'workflow_dispatch' ||
-      github.event.label.name == '词库贡献'
+      (github.event.action == 'labeled' && github.event.label.name == '词库贡献') ||
+      (github.event.action == 'opened' && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:

@@ -12,7 +12,9 @@ const src = fs.readFileSync(path.join(root, 'AI-Web-Translation-Assistant.user.j
 const s1 = src.indexOf("sr.innerHTML = '' +");
 const e1 = src.indexOf("'</div>';", s1) + "'</div>';".length;
 if (s1 < 0 || e1 < 0) throw new Error('未找到面板 HTML');
-const panelHtml = eval(src.slice(s1 + 'sr.innerHTML = '.length, e1 - 1));
+/* 面板里会引用脚本中的常量（如 GH_API_MIRROR），eval 前先喂进去 */
+const mir = (src.match(/var GH_API_MIRROR = '([^']+)'/) || [])[1] || 'https://gh-proxy.com/https://api.github.com';
+const panelHtml = new Function('GH_API_MIRROR', 'return ' + src.slice(s1 + 'sr.innerHTML = '.length, e1 - 1) + ';')(mir);
 
 const page = (dark) => {
   const body = (dark ? panelHtml.replace('@media (prefers-color-scheme:dark)', '@media all') : panelHtml)

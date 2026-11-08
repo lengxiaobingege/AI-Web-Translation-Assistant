@@ -9,7 +9,7 @@
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.3.1
+// @version     1.4.0
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @description 合并版：自动检测页面语言，非简体中文自动翻译（英文/日文/韩文/德文等，繁体转简体），F9 可随时手动重译；AI 大模型优先、不可用时回退引擎链。
@@ -33,6 +33,11 @@
 // @connect     api.moonshot.cn
 // @connect     api.siliconflow.cn
 // @connect     gitcn.org
+// @connect     raw.githubusercontent.com
+// @connect     testingcf.jsdelivr.net
+// @connect     cdn.jsdelivr.net
+// @connect     jsd.onmicrosoft.cn
+// @connect     ghfast.top
 // @license     MIT
 // ==/UserScript==
 
@@ -45,9 +50,12 @@
  *    适用 GitHub/gist 以外的整页翻译；只作兜底——AI 不可用、请求失败或文本超出
  *    AI 处理范围（超长段落）时才会被调用。
  * B. GitHub 汉化插件（加固版 v1.2.0）
- *    内联 1689 条词库 + CSS 规则、原生 DOM 精确/拆分翻译、input placeholder /
- *    value / aria-label、相对时间中文化、代码/文件名/路径等排除规则。
+ *    内联 1654 条词库（离线兜底）+ 24 条数量/时间模式规则 + CSS 规则、
+ *    原生 DOM 精确/拆分翻译、input placeholder / value / aria-label、
+ *    相对时间中文化、代码/文件名/路径等排除规则。
+ *    远端词库（1815 条）每天从仓库同步一次，覆盖同名条目并追加规则。
  *    仅 github.com / gist.github.com 生效，目标语言固定简体中文。
+ *    已知不覆盖范围见文件末尾「汉化覆盖面」注释与 README。
  *
  * ======================= 触发行为（自动 + F9） =======================
  *   1) 自动：页面就绪后自动检测页面主语言，只要不是简体中文就翻译成简体中文
@@ -71,13 +79,27 @@
  *   入口（仅配置，不触发翻译）：篡改猴菜单命令「AI 翻译设置」。
  *   页面内不注入任何按钮/悬浮元素，避免在每网站上遮挡页面内容。
  *   面板（Shadow DOM，隔离 GitHub 样式）为居中卡片 + 遮罩，按「运行方式 / 接口 /
- *   参数」三段分组，开关项用拨动开关；关闭方式：× / Esc / 点遮罩。
+ *   参数 / 汉化词库」四段分组，开关项用拨动开关；关闭方式：× / Esc / 点遮罩。
  *   可填：provider / baseUrl / API Key（可点「显示」查看）/ model /
  *   batchSize / maxChars / timeout / thinkingOff / cache。
  *   保存到本机篡改猴存储（键名 ghx2_ai_settings），F9 执行时读取；
  *   「测试连接」用面板当前值发一次真实请求验证可用性。
  *   公开版本内置 NVIDIA API Key 已置空，请填入自己的 Key；
  *   或 provider 填 builtin 使用浏览器内置 AI（免 Key）。
+ *
+ * ==================== 词库在线更新 ====================
+ *   词库正式存放位置：GitHub 仓库 dict/github.zh-CN.json
+ *   （结构：{ version, count, dict:{英文:译文}, patterns:[{re,to}], cssRules:[] }）
+ *   自动：每天北京时间 0 点之后的首次访问同步一次。浏览器脚本无法在 0:00 主动
+ *         唤醒（后台标签的定时器会被节流），因此实现为「跨日首次打开页面时拉取」，
+ *         24 小时内最多一次；不阻塞首屏，也不打断正在进行的翻译。
+ *   换源：GitHub 原始地址 → testingcf/cdn.jsDelivr → jsd.onmicrosoft.cn → ghfast
+ *         共 5 个源依次尝试，任一个通过校验即停止；全部失败则继续用上次的词库。
+ *   校验：必须是以 { 开头的合法 JSON、dict 条目数 ≥ 100（挡掉反代 HTML 错误页）。
+ *   缓存：合格的响应写入本机（ghx2_dict_remote / ghx2_dict_meta），离线可用。
+ *   合并：远端条目覆盖同名内置条目并写入词库基线（F9 重译不会清掉），
+ *         patterns 与 cssRules 去重后追加。
+ *   手动：篡改猴菜单「立即更新词库」，或设置面板「汉化词库 → 立即更新」。
  *
  * ==================== 需人工确认的限制 ====================
  *  1) 图标为本项目自绘的原创图形（几何字母 A + 三条文字线），256x256 PNG、
@@ -111,6 +133,25 @@ var CFG = {
   scanNodeLimit: 2500,          /* 单次 TreeWalker 收集上限 */
   /* B GitHub 汉化 */
   githubLang: 'zh-CN',          /* 设为 'off' 可关闭 GitHub 汉化 */
+  /* C 词库在线更新：默认源在 GitHub 仓库，按顺序逐个尝试，成功即止 */
+  dict: {
+    enabled: true,
+    daily: true,                /* 每天（北京时间 0 点起）首次访问时同步一次 */
+    timeout: 8000,              /* 单个源的超时，5 个源最坏约 40s，全部在后台跑 */
+    minEntries: 100             /* 条目数低于此值视为无效响应（挡掉反代错误页） */
+  },
+  dictSources: [
+    { name: 'GitHub 原始地址',
+      url: 'https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/dict/github.zh-CN.json' },
+    { name: 'jsDelivr (Cloudflare)',
+      url: 'https://testingcf.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant.@main/dict/github.zh-CN.json' },
+    { name: 'jsDelivr',
+      url: 'https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant.@main/dict/github.zh-CN.json' },
+    { name: 'jsDelivr (国内域名)',
+      url: 'https://jsd.onmicrosoft.cn/gh/lengxiaobingege/AI-Web-Translation-Assistant.@main/dict/github.zh-CN.json' },
+    { name: 'ghfast 反代',
+      url: 'https://ghfast.top/https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/dict/github.zh-CN.json' }
+  ],
   descTranslate: false,         /* 仓库描述翻译按钮已移除（接口 400） */
   githubFallback: 'onFailure',  /* onFailure | always | never：AI 失败时是否用引擎链兜底 */
   ai: {
@@ -2308,6 +2349,59 @@ function normText(s) {
 function hasOwn(obj, k) { return Object.prototype.hasOwnProperty.call(obj, k); }
 function dictGet(key) { return hasOwn(DICT, key) ? DICT[key] : null; }
 
+/* ==================================================================
+ * 模式规则层：词库难穷举的「数量 + 单位」短语（如 "3 commits"、"2 hours ago"）
+ * 精确词条没命中时用正则套用，避免出现「3 提交」「2 小时 ago」这种混排。
+ * 远端词库的 patterns 字段会追加到这里。
+ * ================================================================== */
+var PATTERNS = [
+  ['^([\\d,.]+)\\s+commits?$', '$1 个提交'],
+  ['^([\\d,.]+)\\s+branches?$', '$1 个分支'],
+  ['^([\\d,.]+)\\s+tags?$', '$1 个标签'],
+  ['^([\\d,.]+)\\s+files?$', '$1 个文件'],
+  ['^([\\d,.]+)\\s+files? changed$', '$1 个文件已变更'],
+  ['^([\\d,.]+)\\s+contributors?$', '$1 位贡献者'],
+  ['^([\\d,.]+)\\s+stars?$', '$1 个星标'],
+  ['^([\\d,.]+)\\s+forks?$', '$1 个复刻'],
+  ['^([\\d,.]+)\\s+issues?$', '$1 个议题'],
+  ['^([\\d,.]+)\\s+pull requests?$', '$1 个拉取请求'],
+  ['^([\\d,.]+)\\s+discussions?$', '$1 个讨论'],
+  ['^([\\d,.]+)\\s+projects?$', '$1 个项目'],
+  ['^([\\d,.]+)\\s+additions?$', '$1 行新增'],
+  ['^([\\d,.]+)\\s+deletions?$', '$1 行删除'],
+  ['^([\\d,.]+)\\s+seconds? ago$', '$1 秒前'],
+  ['^([\\d,.]+)\\s+minutes? ago$', '$1 分钟前'],
+  ['^([\\d,.]+)\\s+hours? ago$', '$1 小时前'],
+  ['^([\\d,.]+)\\s+days? ago$', '$1 天前'],
+  ['^([\\d,.]+)\\s+weeks? ago$', '$1 周前'],
+  ['^([\\d,.]+)\\s+months? ago$', '$1 个月前'],
+  ['^([\\d,.]+)\\s+years? ago$', '$1 年前'],
+  ['^([\\d,.]+)\\s+commits? ahead of (.+)$', '$1 个提交领先于 $2'],
+  ['^([\\d,.]+)\\s+commits? behind (.+)$', '落后 $2 $1 个提交'],
+  ['^updated (.+) ago$', '$1前更新']
+];
+var PAT_COMPILED = null;
+var REMOTE_PAT_START = PATTERNS.length;      /* 内置规则条数，合并远端时从这里往后追加 */
+function compilePatterns() {
+  PAT_COMPILED = [];
+  for (var i = 0; i < PATTERNS.length; i++) {
+    try { PAT_COMPILED.push({ re: new RegExp(PATTERNS[i][0], 'i'), to: PATTERNS[i][1] }); } catch (e) { }
+  }
+  REMOTE_PAT_START = PATTERNS.length;
+}
+compilePatterns();
+function applyPattern(text) {
+  if (!PAT_COMPILED) compilePatterns();
+  for (var i = 0; i < PAT_COMPILED.length; i++) {
+    var p = PAT_COMPILED[i];
+    if (p.re.test(text)) {
+      var out = text.replace(p.re, p.to);
+      if (out !== text) return out;
+    }
+  }
+  return null;
+}
+
 /* 文本分段翻译：按空白拆分、逐段查字典，保留原文本的空白/分隔结构 */
 function splitTranslate(text) {
   var parts = text.split(/(\s+)/);
@@ -2341,6 +2435,87 @@ function looksLikeUiText(text) {
 /* 内置词库基线快照：AI 结果会写入 DICT，「再次翻译」时用它还原，避免 AI 译文被当成词库命中而跳过重译 */
 var DICT_BASE = {};
 for (var _dbK in DICT) DICT_BASE[_dbK] = DICT[_dbK];
+
+/* ==================================================================
+ * 远端词库合并（数据来自仓库 dict/github.zh-CN.json）
+ * 规则：
+ *   1. 远端条目直接覆盖同名内置条目（修错译、统一术语靠这条路）
+ *   2. 远端条目同时写入 DICT_BASE，这样 F9「再次翻译」清 AI 译文时不会误删
+ *   3. patterns / cssRules 追加，已存在的同组规则跳过，避免重复加载
+ * ================================================================== */
+var REMOTE_STAT = { entries: 0, version: '', source: '', ts: 0 };
+function mergeRemote(data) {
+  if (!data || typeof data !== 'object') return 0;
+  var added = 0, i, k;
+  if (data.dict && typeof data.dict === 'object') {
+    for (k in data.dict) {
+      if (!hasOwn(data.dict, k)) continue;
+      var v = data.dict[k];
+      if (typeof v !== 'string' || !v) continue;      /* 空译文会把英文整段抹掉 */
+      var key = normKey(k);
+      if (!key) continue;
+      if (DICT[key] !== v) { DICT[key] = v; added++; }
+      DICT_BASE[key] = v;
+    }
+  }
+  if (data.patterns && data.patterns.length) {
+    for (i = 0; i < data.patterns.length; i++) {
+      var p = data.patterns[i];
+      if (!p || typeof p.re !== 'string' || typeof p.to !== 'string') continue;
+      var dup = false;
+      for (var j = 0; j < PATTERNS.length; j++) {
+        if (PATTERNS[j][0] === p.re && PATTERNS[j][1] === p.to) { dup = true; break; }
+      }
+      if (!dup) PATTERNS.push([p.re, p.to]);
+    }
+    compilePatterns();
+  }
+  if (data.cssRules && data.cssRules.length) {
+    for (i = 0; i < data.cssRules.length; i++) {
+      var r = data.cssRules[i];
+      if (!r || !r.selector) continue;
+      var exists = false;
+      for (var q = 0; q < CSS_RULES.length; q++) {
+        if (CSS_RULES[q].selector === r.selector && CSS_RULES[q].key === r.key) { exists = true; break; }
+      }
+      if (!exists) CSS_RULES.push(r);
+    }
+  }
+  if (data.version) REMOTE_STAT.version = String(data.version);
+  REMOTE_STAT.entries = added;
+  return added;
+}
+
+/* 读本机缓存的远端词库（离线也能用上次同步的内容） */
+function loadRemoteDict() {
+  var raw = '';
+  try { raw = Store.get('dict_remote', '') || ''; } catch (e) { raw = ''; }
+  if (!raw) return 0;
+  var data = null;
+  try { data = JSON.parse(raw); } catch (e) { return 0; }
+  var n = mergeRemote(data);
+  var meta = {};
+  try { meta = JSON.parse(Store.get('dict_meta', '{}')) || {}; } catch (e) { meta = {}; }
+  REMOTE_STAT.source = meta.source || '';
+  REMOTE_STAT.ts = meta.ts || 0;
+  return n;
+}
+
+/* 词库状态（设置面板与菜单提示用） */
+function dictStats() {
+  var meta = {};
+  try { meta = JSON.parse(Store.get('dict_meta', '{}')) || {}; } catch (e) { meta = {}; }
+  return {
+    total: Object.keys(DICT).length,
+    remoteAdded: REMOTE_STAT.entries,
+    version: meta.version || '内置',
+    remoteCount: meta.count || 0,
+    source: meta.source || '未同步',
+    ts: meta.ts || 0,
+    patterns: PATTERNS.length,
+    synced: !!meta.version
+  };
+}
 function resetDict() {
   for (var k in DICT) { if (!hasOwn(DICT_BASE, k)) delete DICT[k]; }
 }
@@ -2370,6 +2545,16 @@ function translateTextNode(node) {
       if (out) { recordOriginal(node); node.nodeValue = out; DONE.add(node); return true; }
     }
   }
+  /* 3) 数量/时间类模式（"3 commits"、"2 hours ago"、"1 commit ahead of main"） */
+  var pat = applyPattern(text);
+  if (pat !== null) {
+    var lead = (raw.match(/^\s*/) || [''])[0];
+    var trail = (raw.match(/\s*$/) || [''])[0];
+    recordOriginal(node);
+    node.nodeValue = lead + pat + trail;
+    DONE.add(node);
+    return true;
+  }
   /* AI 补译由 F9 统一调度，不在此自动入队 */
   return false;
 }
@@ -2380,6 +2565,8 @@ function translateAttrValue(v) {
   if (text.length === 0 || text.length > ATTR_LIMIT) return null;
   var hit = dictGet(normKey(text));
   if (hit !== null) return hit;
+  var pat = applyPattern(text);          /* "3 commits" 这类先套模式，再考虑拆词 */
+  if (pat !== null) return pat;
   if (looksLikeUiText(text)) return splitTranslate(text);
   return null;
 }
@@ -2675,13 +2862,91 @@ function aiComplete(nodes, done) {
   next();
 }
 
-return { applyDict: applyDict, aiComplete: aiComplete, resetDict: resetDict };
+return {
+  applyDict: applyDict, aiComplete: aiComplete, resetDict: resetDict,
+  mergeRemote: mergeRemote, loadRemoteDict: loadRemoteDict, dictStats: dictStats,
+  applyPattern: applyPattern
+};
 })();
 
 
 /* ==================================================================
  * 触发入口：自动探测（非简体中文页面）+ F9 手动
  * ================================================================== */
+
+/* ==================================================================
+ * 词库在线更新
+ *   词库正式存放位置：GitHub 仓库 dict/github.zh-CN.json
+ *   自动：每天北京时间 0 点之后的首次访问同步一次
+ *         （浏览器脚本无法在 0:00 主动唤醒，等价实现是「跨日首次打开页面时拉取」，
+ *          24 小时内最多一次；后台标签的定时器会被浏览器节流，定时器方案不可靠）
+ *   失败换源：GitHub 原始地址 → 4 个镜像依次尝试，任一成功即写入本机缓存
+ *   手动：篡改猴菜单「立即更新词库」/ 设置面板「立即更新」
+ * ================================================================== */
+var DICT_META_KEY = 'dict_meta';
+var DICT_DATA_KEY = 'dict_remote';
+var DICT_SYNCING = false;
+
+/* 北京时间日号：UTC+8 的整数天序号，跨过 0 点就 +1 */
+function bjDayNo(ts) {
+  return Math.floor((ts + 8 * 3600 * 1000) / 86400000);
+}
+
+function dictSync(opts, cb) {
+  opts = opts || {};
+  var done = typeof cb === 'function' ? cb : function () { };
+  if (!CFG.dict || !CFG.dict.enabled) { done({ ok: false, reason: '词库更新已关闭' }); return; }
+  if (DICT_SYNCING) { done({ ok: false, reason: '正在更新中' }); return; }
+
+  var meta = {};
+  try { meta = JSON.parse(Store.get(DICT_META_KEY, '{}')) || {}; } catch (e) { meta = {}; }
+  var today = bjDayNo(Date.now());
+  if (!opts.force && CFG.dict.daily && meta.day === today) {
+    done({ ok: false, skipped: true, reason: '今日已同步' }); return;
+  }
+
+  DICT_SYNCING = true;
+  var list = CFG.dictSources.slice();
+  var idx = 0, errors = [];
+
+  function finish(res) { DICT_SYNCING = false; done(res); }
+
+  function next() {
+    if (idx >= list.length) {
+      finish({ ok: false, reason: '全部源均失败（' + errors.join(' / ') + '）' });
+      return;
+    }
+    var src = list[idx++];
+    xhr({ url: src.url, timeout: CFG.dict.timeout }).then(function (text) {
+      var body = String(text || '').trim();
+      if (!body || body.charAt(0) !== '{') throw new Error('返回内容不是 JSON（多为反代错误页）');
+      var data = null;
+      try { data = JSON.parse(body); } catch (e) { throw new Error('JSON 解析失败'); }
+      var n = (data && data.dict) ? Object.keys(data.dict).length : 0;
+      if (!n || n < (CFG.dict.minEntries || 100)) throw new Error('词条数异常（' + n + ' 条）');
+      var added = I18n.mergeRemote(data);
+      Store.set(DICT_DATA_KEY, body);
+      Store.set(DICT_META_KEY, JSON.stringify({
+        day: today, version: data.version || '', count: n, source: src.name, ts: Date.now()
+      }));
+      finish({ ok: true, version: data.version || '', count: n, added: added, source: src.name });
+    }).catch(function (err) {
+      errors.push(src.name + '：' + (err && err.message ? err.message : err));
+      next();
+    });
+  }
+  next();
+}
+
+/* 供菜单与设置面板共用的手动更新入口 */
+function updateDictManual() {
+  toast('正在更新词库…');
+  dictSync({ force: true }, function (r) {
+    if (r.ok) toast('词库已更新：v' + r.version + ' · ' + r.count + ' 条（源：' + r.source + '）');
+    else toast('词库更新失败：' + r.reason);
+  });
+}
+
 
 /* ==================================================================
  * AI 翻译设置面板（仅配置大模型；翻译仍只由 F9 触发）
@@ -2775,6 +3040,13 @@ function openAISettings() {
     '.btn:hover{background:var(--soft)}' +
     '.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}' +
     '.btn.primary:hover{background:var(--accent-h);border-color:var(--accent-h)}' +
+    '.btn.sm{height:28px;padding:0 11px;font-size:12px;flex:0 0 auto}' +
+    '.btn:disabled{opacity:.6;cursor:default}' +
+    '.dict-row{display:flex;align-items:center;gap:10px;padding:3px 0 2px}' +
+    '.dict-info{flex:1;min-width:0;font-size:12px;color:var(--muted);line-height:1.7;word-break:break-word}' +
+    '.dict-info b{color:var(--fg);font-weight:500}' +
+    '.hint{font-size:11.5px;color:var(--muted);line-height:1.65;padding:2px 0 2px}' +
+    '.hint code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;background:var(--soft);padding:1px 4px;border-radius:4px}' +
     '@media (prefers-color-scheme:dark){.card{--bg:#161b22;--fg:#e6edf3;--muted:#8b949e;--line:#30363d;--soft:#1c2128;--field:#0d1117;--accent:#238636;--accent-h:#2ea043;--ring:rgba(46,160,67,.3);--danger:#f85149;--ok:#3fb950}' +
       '.mask{background:rgba(1,4,9,.68)}input::placeholder{color:#6e7681}' +
       '.body{scrollbar-color:#484f58 transparent}.body::-webkit-scrollbar-thumb{background:#484f58;background-clip:padding-box}.body::-webkit-scrollbar-thumb:hover{background:#5b646e;background-clip:padding-box}}' +
@@ -2839,6 +3111,12 @@ function openAISettings() {
               '<div class="switch-txt"><b>译文写入缓存</b><i>同一句第二次出现直接命中，不重复请求</i></div>' +
               '<label class="sw"><input type="checkbox" id="cache"><span></span></label>' +
             '</div>' +
+            '<div class="sec-t">汉化词库</div>' +
+            '<div class="dict-row">' +
+              '<div class="dict-info" id="dictinfo">读取中…</div>' +
+              '<button class="btn sm" id="dictupd" type="button">立即更新</button>' +
+            '</div>' +
+            '<div class="hint">词库托管在 GitHub 仓库的 <code>dict/github.zh-CN.json</code>。每天北京时间 0 点后首次打开页面自动同步一次；失败会依次换用 5 个源（GitHub 原始地址 + 4 个镜像）。</div>' +
           '</div>' +
         '</div>' +
         '<div class="foot">' +
@@ -2875,6 +3153,45 @@ function openAISettings() {
     f('cache').checked = !!a.cache;
   }
   fill();
+
+  /* ---- 词库状态 / 手动更新 ---- */
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function agoText(ts) {
+    if (!ts) return '从未同步';
+    var d = Date.now() - ts;
+    if (d < 60000) return '刚刚同步';
+    if (d < 3600000) return Math.round(d / 60000) + ' 分钟前同步';
+    if (d < 86400000) return Math.round(d / 3600000) + ' 小时前同步';
+    return Math.round(d / 86400000) + ' 天前同步';
+  }
+  function renderDictInfo() {
+    var el = f('dictinfo');
+    if (!el) return;
+    var s = I18n.dictStats();
+    el.innerHTML = s.synced
+      ? '版本 <b>' + esc(s.version) + '</b> · ' + s.total + ' 条 · ' + esc(s.source) + ' · ' + agoText(s.ts)
+      : '内置词库 ' + s.total + ' 条 · 尚未同步远端（等每天 0 点后首次访问，或点右侧按钮手动更新）';
+    el.title = s.synced ? '远端 ' + s.remoteCount + ' 条 / 合计 ' + s.total + ' 条' : '';
+  }
+  f('dictupd').addEventListener('click', function () {
+    var btn = f('dictupd');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = '更新中…';
+    msg('正在拉取词库，失败会自动换源…');
+    dictSync({ force: true }, function (r) {
+      btn.disabled = false;
+      btn.textContent = '立即更新';
+      renderDictInfo();
+      if (r.ok) msg('词库已更新：v' + r.version + '，共 ' + r.count + ' 条（源：' + r.source + '）', 'ok');
+      else msg(r.skipped ? r.reason : '更新失败：' + r.reason, r.skipped ? '' : 'err');
+    });
+  });
+  renderDictInfo();
 
   function msg(t, kind) {
     var el = f('ghx-msg');
@@ -2960,10 +3277,16 @@ function openAISettings() {
 try {
   if (typeof GM_registerMenuCommand === 'function') {
     GM_registerMenuCommand('AI 翻译设置', openAISettings);
+    GM_registerMenuCommand('立即更新词库', updateDictManual);
   }
 } catch (e) { }
 
 loadAISettings();                     /* 启动时读回本机保存的配置，F9 才能拿到用户填的 Key */
+I18n.loadRemoteDict();                /* 先套用本机缓存的远端词库，离线也有上次同步的内容 */
+if (CFG.dict && CFG.dict.enabled && CFG.dict.daily) {
+  /* 延迟 1.2s 让首屏先渲染；同步在后台跑，失败会用镜像重试，不阻塞翻译 */
+  setTimeout(function () { dictSync({}); }, 1200);
+}
 
 var running = false;
 

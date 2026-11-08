@@ -32,8 +32,13 @@ q('url').value='https://integrate.api.nvidia.com/v1/chat/completions';
 q('key').value='demo-key-xxxxxxxxxxxxxxxxxxxx';
 q('model').value='nvidia/nemotron-3.5-super-vl-120b-a12b';
 q('batch').value=20;q('maxc').value=600;q('to').value=60000;
-q('ghx-msg').textContent='词库已更新：v2026.11.08 · 词库 1816 条（内置 1656 + 远端新增 160）· 源：GitHub 原始地址';q('ghx-msg').className='status show ok';
-q('dictinfo').innerHTML='版本 <b>2026.11.08</b> · 词库 <b>1816</b> 条 · GitHub 原始地址 · 3 分钟前同步';q('dictsub').textContent='内置 1656 条 + 远端新增 160 条（远端 1815 条同名覆盖） · AI 记忆 409 条不计入（本机译文缓存）';
+q('ghx-msg').textContent='';q('ghx-msg').className='status';   // 面板刚打开时状态行为空，更贴近真实首屏
+q('dictinfo').innerHTML='版本 <b>2026.11.08</b> · 词库 <b>1816</b> 条 · GitHub 原始地址 · 3 分钟前同步';q('openkey').value='Alt+N';
+if (q('contribfold')) q('contribfold').open = false;  // 默认收起，与真实首屏一致
+q('contrib').checked=true;
+q('ctoken').value='demo-token-xxxxxxxxxxxxxxxx';
+q('contribinfo').innerHTML='本地已采集 <b>12</b> 条，可推送到仓库或提交 Issue';
+q('dictsub').textContent='内置 1656 条 + 远端新增 160 条（远端 1815 条同名覆盖） · AI 记忆 409 条不计入（本机译文缓存）';
 </script></body></html>`;
 };
 

@@ -61,8 +61,10 @@ jobs:
         if: steps.precheck.outputs.skip == 'false'
         env:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
-          AI_BASE_URL: ${{ vars.AI_BASE_URL || 'https://api.openai.com/v1/chat/completions' }}
-          AI_MODEL: ${{ vars.AI_MODEL || 'gpt-4o-mini' }}
+          # 服务商默认值写在 tools/dict_ai_fill.mjs 里，这里只在配置了 Variable 时覆盖。
+          # 早期版本在这里把 OpenAI 的地址/模型写死，导致换了 Key 却仍请求 OpenAI。
+          AI_BASE_URL: ${{ vars.AI_BASE_URL }}
+          AI_MODEL: ${{ vars.AI_MODEL }}
           AI_BATCH: '20'
           AI_LIMIT: ${{ github.event.inputs.limit || '100' }}
           DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '0' }}
@@ -99,7 +101,7 @@ jobs:
           NEW_VERSION=$(node -e 'console.log(require("./dict/github.zh-CN.json").version)')
           git add dict/github.zh-CN.json
           git commit -m "词库自动续写：${{ steps.base.outputs.count }} → ${NEW_COUNT} 条（${NEW_VERSION}）" \
-                     -m "由 GitHub Actions 每日任务生成，候选来源 tools/candidates.txt，模型 ${{ vars.AI_MODEL || 'gpt-4o-mini' }}。"
+                     -m "由 GitHub Actions 每日任务生成，候选来源 tools/candidates.txt，模型 ${{ vars.AI_MODEL || '脚本默认' }}。"
           git push origin HEAD:main
           echo "changed=true" >> $GITHUB_OUTPUT
           echo "count=${NEW_COUNT}" >> $GITHUB_OUTPUT

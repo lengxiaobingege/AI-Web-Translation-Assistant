@@ -1,32 +1,40 @@
 name: 词库 Issue 接收
 
 # 用户没有 GitHub Token 时，会通过「提交 Issue」把采集到的词条发过来。
-# 这条工作流把 Issue 正文里的「原文 → 译文」解析成 dict/contribs/contrib-issue-<编号>.json，
-# 进入与脚本回传相同的合并队列；正式合并仍需维护者手动触发「词库贡献合并」。
+# 为避免任何人开 Issue 就往仓库写文件，本工作流**只在维护者给 Issue 打上
+# 「词库贡献」标签时**才解析（打标 = 人工确认要处理这条）。
+# 也可以从 Actions 页手动触发并填写 Issue 编号。
 #
-# 安全：Issue 正文来自外部用户，只解析列表行，限制条数/长度，不写正式词库；
-#      push 用 GITHUB_TOKEN，不会反过来触发其它工作流。
+# 解析结果写入 dict/contribs/contrib-issue-<编号>.json，进入与脚本回传相同的队列；
+# 正式合并仍需维护者手动触发「词库贡献合并」。
 on:
   issues:
-    types: [opened]
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: '要解析的 Issue 编号'
+        required: true
 
 permissions:
   contents: write
   issues: write
 
 concurrency:
-  group: dict-issue-${{ github.event.issue.number }}
+  group: dict-issue-parse
   cancel-in-progress: false
 
 jobs:
   intake:
     name: 解析 Issue 词条
-    # 只处理脚本生成的 Issue：标题前缀或正文标记命中才跑，普通 Issue 直接跳过
+    # 打标触发时只认「词库贡献」这个标签；手动触发则无条件执行
     if: |
-      startsWith(github.event.issue.title, '词库补充') ||
-      contains(github.event.issue.body || '', 'ghx-contrib')
+      github.event_name == 'workflow_dispatch' ||
+      github.event.label.name == '词库贡献'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -36,18 +44,26 @@ jobs:
         with:
           node-version: '22'
 
+      - name: 取回 Issue 正文
+        id: fetch
+        run: |
+          N="${{ github.event.issue.number || github.event.inputs.issue_number }}"
+          echo "num=${N}" >> $GITHUB_OUTPUT
+          gh api "repos/${{ github.repository }}/issues/${N}" --jq '.body // ""' > issue_body.txt
+          echo "正文长度：$(wc -c < issue_body.txt) 字节"
+
       - name: 解析词条
         id: parse
         env:
-          ISSUE_BODY: ${{ github.event.issue.body }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-        run: node tools/issue_to_contrib.js
+          ISSUE_NUMBER: ${{ steps.fetch.outputs.num }}
+        run: |
+          ISSUE_BODY="$(cat issue_body.txt)" node tools/issue_to_contrib.js
 
       - name: 提交到贡献队列
         id: commit
         if: steps.parse.outputs.count != '0'
         run: |
-          FILE="dict/contribs/contrib-issue-${{ github.event.issue.number }}.json"
+          FILE="dict/contribs/contrib-issue-${{ steps.fetch.outputs.num }}.json"
           if [ ! -f "$FILE" ]; then
             echo "::notice::没有生成贡献文件"
             echo "pushed=false" >> $GITHUB_OUTPUT
@@ -61,13 +77,13 @@ jobs:
             echo "pushed=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          git commit -m "词库贡献：接收 Issue #${{ github.event.issue.number }} 的 ${{ steps.parse.outputs.count }} 条词条" \
-                     -m "由用户 Issue 自动解析生成，待维护者触发「词库贡献合并」后进入正式词库。"
+          git commit -m "词库贡献：接收 Issue #${{ steps.fetch.outputs.num }} 的 ${{ steps.parse.outputs.count }} 条词条" \
+                     -m "维护者打标确认后由 Issue 自动解析生成，待触发「词库贡献合并」进入正式词库。"
           git push origin HEAD:main
           echo "pushed=true" >> $GITHUB_OUTPUT
 
       - name: 回帖告知结果
-        if: always()
+        if: always() && steps.parse.outputs.count != ''
         uses: actions/github-script@v8
         env:
           COUNT: ${{ steps.parse.outputs.count }}
@@ -75,40 +91,22 @@ jobs:
           PUSHED: ${{ steps.commit.outputs.pushed }}
         with:
           script: |
+            const num = Number('${{ steps.fetch.outputs.num }}');
             const count = process.env.COUNT || '0';
             const skipped = process.env.SKIPPED || '0';
             const pushed = process.env.PUSHED === 'true';
             const body = count === '0'
-              ? '未从本 Issue 中解析到可用词条。请确认每行格式为 `原文 → 译文`（一行一条），维护者也可以手动处理。'
+              ? '未从本 Issue 中解析到可用词条。请确认每行格式为 `原文 → 译文`（一行一条），也可由维护者手动处理。'
               : [
-                  `已自动接收 **${count}** 条词条${skipped !== '0' ? `（另有 ${skipped} 行因格式/超长/反向而跳过）` : ''}。`,
+                  `已接收 **${count}** 条词条${skipped !== '0' ? `（另有 ${skipped} 行因格式/超长/反向而跳过）` : ''}。`,
                   '',
-                  pushed ? '已写入 `dict/contribs/`，等待维护者审核合并；合并后所有用户会在次日自动同步。' : '贡献文件已存在，无需重复提交。',
+                  pushed ? '已写入 `dict/contribs/`，等待维护者触发「词库贡献合并」；合并后所有用户会在次日自动同步。' : '贡献文件已存在，无需重复提交。',
                   '',
                   '感谢贡献！',
                 ].join('\n');
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: num,
               body,
-            });
-
-      - name: 打标签（失败不影响流程）
-        if: steps.parse.outputs.count != '0'
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const name = '词库贡献';
-            try {
-              await github.rest.issues.getLabel({ owner, repo, name });
-            } catch (e) {
-              await github.rest.issues.createLabel({
-                owner, repo, name, color: '0E8A16', description: '用户脚本采集的词条，待合并进词库',
-              });
-            }
-            await github.rest.issues.addLabels({
-              owner, repo, issue_number: context.issue.number, labels: [name],
             });

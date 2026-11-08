@@ -1,0 +1,91 @@
+name: 词库统计
+
+# 每天生成词库统计（总数、与内置词库的重叠、键长分布），写入 Job Summary；
+# 可选地把数字同步到 README 的占位区块（默认开启，README 里需要有对应标记）
+on:
+  schedule:
+    # 每天北京时间 08:40（UTC 00:40）
+    - cron: '40 0 * * *'
+  push:
+    paths:
+      - 'dict/**'
+      - 'tools/dict_report.js'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dict-report
+  cancel-in-progress: true
+
+jobs:
+  report:
+    name: 生成统计报告
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 生成报告
+        id: gen
+        run: |
+          node tools/dict_report.js --out report.md
+          node tools/dict_report.js --json > report.json
+          cat report.md >> $GITHUB_STEP_SUMMARY
+          node -e '
+          const r = require("./report.json");
+          console.log("远端 " + r.actual + " 条，实际可用 " + r.totalEffective + " 条，版本 " + r.version);
+          require("fs").appendFileSync(process.env.GITHUB_OUTPUT,
+            "count=" + r.actual + "\ntotal=" + r.totalEffective + "\nversion=" + r.version + "\nbuiltin=" + r.builtin + "\n");
+          '
+
+      - name: 同步数字到 README
+        if: github.event_name != 'pull_request'
+        run: |
+          node -e '
+          const fs = require("fs");
+          const r = require("./report.json");
+          const p = "README.md";
+          if (!fs.existsSync(p)) { console.log("无 README，跳过"); process.exit(0); }
+          const src = fs.readFileSync(p, "utf8");
+          const start = "<!-- dict-stat:start -->";
+          const end = "<!-- dict-stat:end -->";
+          if (!src.includes(start) || !src.includes(end)) {
+            console.log("README 里没有 " + start + " / " + end + " 标记，跳过同步");
+            process.exit(0);
+          }
+          const block = [
+            start,
+            "",
+            "| 词库版本 | 远端词条 | 内置词条 | 实际可用合计 | 模式规则 |",
+            "| --- | --- | --- | --- | --- |",
+            "| `" + r.version + "` | " + r.actual + " 条 | " + r.builtin + " 条 | " + r.totalEffective + " 条 | " + r.patterns + " 条 |",
+            "",
+            "<sub>由 GitHub Actions 自动更新于 " + new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC</sub>",
+            "",
+            end,
+          ].join("\n");
+          const out = src.replace(new RegExp(start + "[\\s\\S]*?" + end), block);
+          if (out === src) { console.log("README 数字无变化"); process.exit(0); }
+          fs.writeFileSync(p, out, "utf8");
+          console.log("README 已更新");
+          '
+
+      - name: 提交 README 改动
+        run: |
+          if git diff --quiet -- README.md; then
+            echo "::notice::README 无变化，无需提交"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "词库统计：同步数字到 README（${{ steps.gen.outputs.count }} 条）"
+          git push origin HEAD:main

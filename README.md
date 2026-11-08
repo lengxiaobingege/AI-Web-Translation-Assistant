@@ -92,7 +92,41 @@
 dict/github.zh-CN.json
 ```
 
-脚本内置的 1656 条只是**离线兜底**；只要网络正常，启动后会套用仓库里更新过的版本（当前 1815 条，与内置同名的是覆盖，合计 1816 条）。
+脚本内置的 1656 条只是**离线兜底**；只要网络正常，启动后会套用仓库里更新过的版本（与内置同名的是覆盖，不重复计数）。
+
+<!-- dict-stat:start -->
+
+| 词库版本 | 远端词条 | 内置词条 | 实际可用合计 | 模式规则 |
+| --- | --- | --- | --- | --- |
+| `2026.11.08-b7` | 2315 条 | 1656 条 | 2318 条 | 24 条 |
+
+<sub>由 GitHub Actions 自动更新于 2026-11-08 03:46 UTC</sub>
+
+<!-- dict-stat:end -->
+
+### 自动维护
+
+词库的校验、统计与补充由 GitHub Actions 承担，无需本地环境：
+
+| 工作流 | 触发 | 做什么 |
+| --- | --- | --- |
+| `dict-lint.yml` | 改动 `dict/`、`tools/` 或 PR | 校验键格式、重复键、空译文、`count` 一致性、术语统一、`patterns` 可编译性；不通过则红叉 |
+| `dict-report.yml` | 每天 08:40、`dict/` 变更 | 生成统计写入 Job Summary，并把上表数字同步回本文件 |
+| `dict-ai-fill.yml` | 每天 09:10、手动 | 从 `tools/candidates.txt` 取词库缺失条目，交大模型翻译后直接提交到 `main`；未配置 `AI_API_KEY` 时自动跳过 |
+
+启用 AI 续写需要两步：
+
+1. 在仓库 **Settings → Secrets and variables → Actions** 新建 Secret `AI_API_KEY`（填模型的 Key）。
+2. 可选：新建 Variable `AI_BASE_URL`（OpenAI 兼容的 `/chat/completions` 地址）和 `AI_MODEL`（模型名）。不填则走 `https://api.openai.com/v1/chat/completions` 与 `gpt-4o-mini`。
+
+本地也能跑同一套脚本：
+
+```bash
+node tools/dict_lint.js          # 检查
+node tools/dict_lint.js --fix    # 自动修键格式
+node tools/dict_report.js        # 统计
+AI_API_KEY=xxx node tools/dict_ai_fill.mjs   # 续写（DRY_RUN=1 可先预演）
+```
 
 ### 面板里的数字怎么算
 

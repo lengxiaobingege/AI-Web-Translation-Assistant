@@ -1,0 +1,117 @@
+name: 词库自动续写
+
+# 每天定时从 tools/candidates.txt 里挑词库缺失的条目，交给大模型翻译后直接提交到 main
+# 没配 AI_API_KEY 时整条流水线会跳过（绿色通过），不会报红
+on:
+  schedule:
+    # 每天北京时间 09:10（UTC 01:10）跑一次
+    - cron: '10 1 * * *'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: '本次最多新增多少条'
+        required: false
+        default: '100'
+      dry_run:
+        description: '只预演不写文件（true/false）'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dict-ai-fill
+  cancel-in-progress: false
+
+jobs:
+  fill:
+    name: AI 续写并提交
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 检查是否配置了密钥
+        id: precheck
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+        run: |
+          if [ -z "${AI_API_KEY}" ]; then
+            echo "::notice::未配置仓库 Secret AI_API_KEY，跳过自动续写。到 Settings → Secrets and variables → Actions 添加后即可启用。"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 记录改动前的基线
+        if: steps.precheck.outputs.skip == 'false'
+        id: base
+        run: |
+          echo "count=$(node -e 'console.log(require("./dict/github.zh-CN.json").count)')" >> $GITHUB_OUTPUT
+          echo "version=$(node -e 'console.log(require("./dict/github.zh-CN.json").version)')" >> $GITHUB_OUTPUT
+
+      - name: AI 续写
+        if: steps.precheck.outputs.skip == 'false'
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_BASE_URL: ${{ vars.AI_BASE_URL || 'https://api.openai.com/v1/chat/completions' }}
+          AI_MODEL: ${{ vars.AI_MODEL || 'gpt-4o-mini' }}
+          AI_BATCH: '20'
+          AI_LIMIT: ${{ github.event.inputs.limit || '100' }}
+          DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '0' }}
+        run: node tools/dict_ai_fill.mjs
+
+      - name: 提交前自检
+        if: steps.precheck.outputs.skip == 'false' && github.event.inputs.dry_run != 'true'
+        id: lint
+        run: |
+          set +e
+          node tools/dict_lint.js
+          code=$?
+          set -e
+          if [ "${code}" != "0" ]; then
+            echo "::warning::AI 写入后未通过自检，已放弃本次提交"
+            echo "ok=false" >> $GITHUB_OUTPUT
+            git checkout -- dict/github.zh-CN.json
+          else
+            echo "ok=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 提交并推送
+        if: steps.precheck.outputs.skip == 'false' && steps.lint.outputs.ok == 'true' && github.event.inputs.dry_run != 'true'
+        id: commit
+        run: |
+          if git diff --quiet -- dict/github.zh-CN.json; then
+            echo "::notice::词库没有变化，无需提交"
+            echo "changed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          NEW_COUNT=$(node -e 'console.log(require("./dict/github.zh-CN.json").count)')
+          NEW_VERSION=$(node -e 'console.log(require("./dict/github.zh-CN.json").version)')
+          git add dict/github.zh-CN.json
+          git commit -m "词库自动续写：${{ steps.base.outputs.count }} → ${NEW_COUNT} 条（${NEW_VERSION}）" \
+                     -m "由 GitHub Actions 每日任务生成，候选来源 tools/candidates.txt，模型 ${{ vars.AI_MODEL || 'gpt-4o-mini' }}。"
+          git push origin HEAD:main
+          echo "changed=true" >> $GITHUB_OUTPUT
+          echo "count=${NEW_COUNT}" >> $GITHUB_OUTPUT
+
+      - name: 写入摘要
+        if: always()
+        run: |
+          node tools/dict_report.js --out report.md
+          if [ -f report.md ]; then cat report.md >> $GITHUB_STEP_SUMMARY; fi
+          {
+            echo ""
+            echo "---"
+            echo "- 运行模式：${{ steps.precheck.outputs.skip == 'true' && '已跳过（无密钥）' || (steps.commit.outputs.changed == 'true' && '已提交' || '无改动') }}"
+            echo "- 本次新增：${{ steps.commit.outputs.changed == 'true' && '见提交记录' || '0' }}"
+          } >> $GITHUB_STEP_SUMMARY

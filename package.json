@@ -1,0 +1,11 @@
+{
+  "name": "ai-web-translation-assistant-tools",
+  "private": true,
+  "type": "commonjs",
+  "description": "词库维护脚本（质量检查、统计、AI 续写）",
+  "scripts": {
+    "lint": "node tools/dict_lint.js",
+    "report": "node tools/dict_report.js",
+    "fill": "node tools/dict_ai_fill.js"
+  }
+}

@@ -1,0 +1,86 @@
+name: 词库质量检查
+
+# 只要动到词库就查：键格式、重复、空译文、count 一致性、术语统一、patterns 能否编译
+on:
+  push:
+    paths:
+      - 'dict/**'
+      - 'tools/**'
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - 'dict/**'
+      - 'tools/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dict-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: 校验 dict/github.zh-CN.json
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 运行检查并写入摘要
+        run: |
+          set +e
+          node tools/dict_lint.js --json > lint.json
+          CODE=$?
+          set -e
+          echo "检查退出码：${CODE}"
+
+          node tools/dict_lint.js || true
+
+          node -e '
+          const r = require("./lint.json");
+          const s = r.stat;
+          const L = [];
+          L.push("### 词库检查：" + (s.errors ? "未通过" : "通过"));
+          L.push("");
+          L.push("| 指标 | 数值 |");
+          L.push("| --- | --- |");
+          L.push("| 词条数 | " + s.total + " |");
+          L.push("| count 字段 | " + s.count + (s.count === s.total ? "（一致）" : "（不一致）") + " |");
+          L.push("| 版本 | `" + s.version + "` |");
+          L.push("| 模式规则 | " + s.patterns + " |");
+          L.push("| CSS 规则 | " + s.cssRules + " |");
+          L.push("| 错误 | " + s.errors + " |");
+          L.push("| 警告 | " + s.warnings + " |");
+          if (r.errors.length) {
+            L.push("");
+            L.push("#### 错误");
+            L.push("");
+            L.push("| 规则 | 键 | 说明 |");
+            L.push("| --- | --- | --- |");
+            for (const e of r.errors.slice(0, 50)) {
+              L.push("| `" + e.rule + "` | `" + String(e.key).slice(0, 60) + "` | " + e.detail + " |");
+            }
+            if (r.errors.length > 50) L.push("| … | | 另有 " + (r.errors.length - 50) + " 项 |");
+          }
+          if (r.warnings.length) {
+            L.push("");
+            L.push("#### 警告");
+            L.push("");
+            for (const w of r.warnings.slice(0, 20)) {
+              L.push("- `" + w.rule + "` `" + String(w.key).slice(0, 50) + "` — " + w.detail);
+            }
+            if (r.warnings.length > 20) L.push("- …另有 " + (r.warnings.length - 20) + " 项");
+          }
+          require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, L.join("\n") + "\n");
+          '
+
+          if [ "${CODE}" != "0" ]; then
+            echo "::error::词库检查未通过，共 $(node -e 'console.log(require("./lint.json").stat.errors)') 项错误，详见 Job Summary"
+            exit 1
+          fi

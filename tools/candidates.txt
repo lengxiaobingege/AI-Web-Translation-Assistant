@@ -1,0 +1,490 @@
+# 候选词清单：等待补充进词库的英文界面短语
+#
+# 用法：由 tools/dict_ai_fill.mjs 读取，自动跳过词库里已有的条目，只翻译缺失部分。
+# 规则：
+#   1. 一行一条，小写，不要写中文；# 开头为注释
+#   2. 只放 GitHub 界面真实出现的文案，不要放代码、路径、仓库名
+#   3. 词库已有的不用删，脚本会自动跳过
+#   4. 想临时停用某条，行首加 # 即可
+#
+# 现有 2315 条之外的常见缺口，按页面分组：
+
+# ---- 仓库首页 / About ----
+custom properties
+repository admins
+manage topics
+add topics
+no description, website, or topics provided
+edit repository metadata
+readme file
+license file
+contributing guidelines
+code of conduct
+security policy file
+issue template
+pull request template
+funding
+citation file
+dev container
+gitignore template
+choose a license
+add a license
+
+# ---- 文件浏览 ----
+go to file
+find file
+copy path
+download directory
+open with github desktop
+open in github.dev
+delete directory
+create new file
+upload files
+drag files here to add them to your repository
+commit changes
+commit directly to the main branch
+create a new branch for this commit
+propose changes
+preview changes
+edit in place
+raw file
+blame history
+view file history
+copy permanent link
+open raw
+line numbers
+soft wrap
+fold code
+expand code
+go to definition
+find all references
+
+# ---- 提交与历史 ----
+commit history
+browse commits
+view all commits
+commits on this branch
+filter commits by message
+commits by author
+commits by date
+latest commit
+older
+newer
+first commit
+last commit
+compare with
+compare branches
+three-dot compare
+two-dot compare
+diff view
+side-by-side diff
+unified diff
+whitespace changes
+ignore whitespace
+show file tree
+hide file tree
+expand all files
+collapse all files
+
+# ---- 分支与合并 ----
+switch branch
+create branch from
+branch source
+branch name is required
+delete this branch
+restore branch
+protected branches
+branch rules
+require pull request reviews
+require status checks to pass
+require conversation resolution
+require signed commits
+require linear history
+lock branch
+allow force pushes
+allow deletions
+rulesets
+new ruleset
+bypass list
+merge queue
+add to merge queue
+remove from merge queue
+merge queue entry
+squash commits
+rebase branch
+update with rebase
+resolve conflict
+conflict resolution
+mark as resolved
+accept current change
+accept incoming change
+accept both changes
+conflict editor
+
+# ---- Pull Request ----
+open a pull request
+compare and pull request
+create draft pull request
+mark as ready for review
+request review
+request changes
+approve
+approve and merge
+dismiss review
+re-request review
+reviewers
+assign yourself
+add reviewer
+files changed
+conversation
+commits
+checks
+merge options
+merge without waiting
+enable auto-merge
+disable auto-merge
+delete branch after merge
+confirm merge
+pull request merged
+pull request closed
+linked issue
+closes
+fixes
+related issues
+review required
+changes requested
+approved by
+stale review
+
+# ---- Issue ----
+new issue
+open issue
+closed issue
+issue templates
+choose a template
+blank issue
+add a title
+add a description
+write a comment
+leave a comment
+comment and close
+close as completed
+close as not planned
+close with comment
+reopen issue
+transfer issue
+delete issue
+pin issue
+lock conversation
+unlock conversation
+subscribed
+unsubscribe
+participants
+linked pull requests
+development
+create a branch for this issue
+mark as duplicate
+convert to discussion
+add sub-issue
+sub-issues
+relationships
+tracked by
+blocked by
+blocking
+
+# ---- 讨论 Discussions ----
+new discussion
+choose a category
+announcements
+general
+ideas
+polls
+question and answer
+show and tell
+answered
+unanswered
+mark as answer
+accepted answer
+upvote
+upvotes
+sort by top
+sort by newest
+start a new discussion
+discussion categories
+edit category
+
+# ---- Actions ----
+workflow runs
+all workflows
+new workflow
+set up a workflow yourself
+choose a workflow
+suggested for this repository
+configure
+workflow file
+workflow syntax
+run workflow
+run details
+re-run all jobs
+re-run failed jobs
+cancel run
+cancel workflow
+job summary
+step summary
+set up job
+complete job
+post job cleanup
+checkout
+runner
+self-hosted runner
+github-hosted runner
+runner group
+add runner
+artifacts
+upload artifact
+download artifact
+cache
+restore cache
+secrets and variables
+repository secrets
+environment secrets
+organization secrets
+variables
+actions permissions
+workflow permissions
+allow all actions
+disable actions
+concurrency
+timeout minutes
+retention days
+matrix
+fail-fast
+continue-on-error
+environment
+environment name
+deployment protection rules
+required reviewers
+wait timer
+
+# ---- 安全 ----
+security overview
+security advisories
+report a vulnerability
+dependabot alerts
+code scanning alerts
+secret scanning alerts
+dependency graph
+dependents
+vulnerable dependencies
+push protection
+bypass
+dismiss alert
+resolve alert
+reopen alert
+severity
+critical
+moderate
+affected versions
+patched versions
+cve id
+ghsa id
+security policy
+supply chain
+attestation
+private vulnerability reporting
+
+# ---- 设置 ----
+general
+access
+collaborators
+manage access
+add people
+invite a collaborator
+remove collaborator
+transfer ownership
+archive this repository
+unarchive
+delete this repository
+change visibility
+danger zone
+default branch
+branch protection rules
+merge button
+allow auto-merge
+automatically delete head branches
+allow squash merging
+allow rebase merging
+allow merge commits
+always suggest updating pull request branches
+automatically delete head branches
+require approvals
+status checks
+webhooks
+add webhook
+payload url
+deploy keys
+add deploy key
+pages
+build and deployment
+custom domain
+enforce https
+actions
+secrets
+variables
+environments
+codespaces
+copilot
+models
+rules
+rulesets
+tag protection
+
+# ---- 账户与组织 ----
+public profile
+profile picture
+bio
+company
+location
+website
+social accounts
+public email
+primary email
+backup email
+add email address
+keep my email addresses private
+display name
+change username
+export account data
+delete account
+two-factor authentication
+recovery codes
+security keys
+authenticator app
+sessions
+active sessions
+revoke
+authorized oauth apps
+github apps
+install github app
+organization settings
+organization profile
+organization owners
+member privileges
+base permissions
+repository roles
+custom repository roles
+verified domains
+single sign-on
+saml single sign-on
+identity provider
+scim
+provisioning
+seats
+billing and plans
+payment information
+invoices
+receipts
+licenses
+usage this month
+included usage
+on-demand
+spending limit
+budget
+
+# ---- 软件包与发行版 ----
+packages
+container registry
+package registry
+publish package
+package version
+install with
+container image
+image tags
+digest
+manifest
+layers
+delete package
+package settings
+link a repository
+releases
+new release
+draft release
+pre-release
+latest release
+set as the latest release
+edit release
+delete release
+release notes
+generate release notes
+assets
+attach binaries
+source code (zip)
+source code (tar.gz)
+what's changed
+new contributors
+full changelog
+previous tag
+
+# ---- 个人主页 ----
+followers
+following
+edit profile
+pinned repositories
+customize your pins
+popular repositories
+contribution activity
+contributions in the last year
+contribution graph
+contribution settings
+achievements
+highlights
+organizations
+stars
+joined
+sponsor
+sponsors
+sponsorship tiers
+become a sponsor
+block or report
+block user
+unblock user
+blocked users
+report abuse
+
+# ---- 通用 ----
+loading
+no results
+try again
+something went wrong
+permission denied
+not found
+unauthorized
+too many requests
+copy link
+copy permalink
+open in new tab
+download zip
+view raw
+view file
+read the docs
+learn more
+show more
+show less
+load more
+see all
+clear all
+apply
+reset
+discard
+save changes
+saved
+cancel
+confirm
+continue
+finish
+skip
+next
+previous
+back
+close
+dismiss

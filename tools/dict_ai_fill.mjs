@@ -9,9 +9,10 @@
  * 没配 Key 时直接退出 0，不会让流水线变红。
  *
  * 环境变量：
- *   AI_BASE_URL   默认 https://api.openai.com/v1/chat/completions
+ *   AI_BASE_URL   默认 https://integrate.api.nvidia.com/v1
+ *                 可以给到 /v1 为止，也可以给完整的 .../chat/completions，脚本会自动补全
  *   AI_API_KEY    必填才真正运行
- *   AI_MODEL      默认 gpt-4o-mini
+ *   AI_MODEL      默认 nvidia/nemotron-3.5-super-vl-120b-a12b
  *   AI_BATCH      每批条数，默认 20
  *   AI_LIMIT      本次最多新增多少条，默认 100
  *   CANDIDATES    候选词文件路径，默认 tools/candidates.txt
@@ -26,9 +27,19 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const DICT_PATH = path.join(root, 'dict/github.zh-CN.json');
 
-const BASE_URL = process.env.AI_BASE_URL || 'https://api.openai.com/v1/chat/completions';
+/* 接口地址容错：
+ * 有人习惯填 https://xxx/v1 ，也有人填完整的 .../v1/chat/completions。
+ * 统一去掉结尾斜杠；若末尾不是 /chat/completions 就自动补上。 */
+function resolveUrl(raw) {
+  const u = String(raw || '').trim().replace(/\/+$/, '');
+  if (!u) return '';
+  if (/\/chat\/completions$/.test(u)) return u;
+  return u + '/chat/completions';
+}
+
+const BASE_URL = resolveUrl(process.env.AI_BASE_URL || 'https://integrate.api.nvidia.com/v1');
 const API_KEY = process.env.AI_API_KEY || '';
-const MODEL = process.env.AI_MODEL || 'gpt-4o-mini';
+const MODEL = process.env.AI_MODEL || 'nvidia/nemotron-3.5-super-vl-120b-a12b';
 const BATCH = Number(process.env.AI_BATCH || 20);
 const LIMIT = Number(process.env.AI_LIMIT || 100);
 const DRY = process.env.DRY_RUN === '1';
@@ -130,10 +141,36 @@ async function callAI(items) {
     throw new Error('HTTP ' + res.status + ' ' + redact(t).slice(0, 300));
   }
   const j = await res.json();
-  const txt = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
-  const m = txt.match(/\{[\s\S]*\}/);
+  const msg = (j.choices && j.choices[0] && j.choices[0].message) || {};
+  let txt = msg.content || '';
+
+  /* 某些模型（含带推理的）会把正文放在 reasoning_content 里，
+   * 或者 content 为空、只有推理过程。这里兜一层，避免直接失败。 */
+  if (!txt && msg.reasoning_content) txt = String(msg.reasoning_content);
+
+  if (typeof txt !== 'string') txt = String(txt || '');
+  txt = txt.trim();
+
+  if (!txt) {
+    const u = j.usage || {};
+    throw new Error('模型返回空内容（finish_reason=' + (j.choices && j.choices[0] && j.choices[0].finish_reason) +
+      '，completion_tokens=' + (u.completion_tokens == null ? '?' : u.completion_tokens) + '）');
+  }
+
+  /* JSON 提取容错：
+   * 1) 先剥掉 ```json ... ``` 代码块
+   * 2) 再退化为「最外层一对花括号」的贪婪匹配
+   * 3) 两者都失败才报错 */
+  const fence = txt.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidate = (fence ? fence[1] : txt).trim();
+  const m = candidate.match(/\{[\s\S]*\}/);
   if (!m) throw new Error('返回内容里没有 JSON：' + redact(txt).slice(0, 200));
-  return JSON.parse(m[0]);
+
+  try {
+    return JSON.parse(m[0]);
+  } catch (e) {
+    throw new Error('JSON 解析失败（' + redact(e && e.message) + '）：' + redact(m[0]).slice(0, 200));
+  }
 }
 
 /* ---------- 分批翻译 ---------- */

@@ -104,7 +104,7 @@
 词条库（下文简称「词库」）的正式版本放在本仓库：
 
 ```text
-dict/github.zh-CN.json
+dict/zh-CN.json
 ```
 
 脚本内置的 1656 条只是**离线兜底**；只要网络正常，启动后会套用仓库里更新过的版本（当前 2330 条，与内置同名的是覆盖，合计 2333 条）。
@@ -146,7 +146,7 @@ AI 记忆随使用不断增长（按 F9 重译也会更新它），但它始终�
 | --- | --- | --- | --- |
 | **词库质量检查** | 每次往 `dict/`、`tools/`、工作流目录推代码，或提 PR | 跑 `tools/dict_lint.js`：键格式（大小写/首尾空格/连续空格）、重复键、空译文、`count` 字段一致性、术语统一（如 workflow 必须译作「工作流」）、`patterns` 正则能否编译；结果写进 Job Summary，有错就红 | 否（只读） |
 | **词库统计** | 每天北京时间 12:20，或 `dict/` 变动时 | 生成总数 / 与内置的重叠 / 键长分布等统计，写 Job Summary，并把上面那张「词库规模」表更新进 README | 是（只改 README 那个区块） |
-| **词库自动续写** | 每天北京时间 12:00 | 从 `tools/candidates.txt` 里挑词库还没有的界面短语，交给 AI 翻译后补进 `dict/github.zh-CN.json`；写入后先跑一遍质量检查，不过就回滚不提交 | 是（只改词库） |
+| **词库自动续写** | 每天北京时间 12:00 | 从 `tools/candidates.txt` 里挑词库还没有的界面短语，交给 AI 翻译后补进 `dict/zh-CN.json`；写入后先跑一遍质量检查，不过就回滚不提交 | 是（只改词库） |
 | **词库 Issue 接收** | 自己人（OWNER/MEMBER/COLLABORATOR）开的 Issue 自动；其他人开的需要你打「词库贡献」标签；也可手动填编号触发 | 解析 Issue 正文里的 `原文 → 译文`，存成 `dict/contribs/contrib-issue-<编号>.json`，回帖说明收了几条 | 是（只加贡献文件） |
 | **词库贡献合并** | 每天北京时间 12:40，或你手动点 Run workflow | 把 `dict/contribs/*.json` 合并进正式词库（只加不改；定时任务永不覆盖），合并后跑质量检查，通过才提交并清理贡献文件、同步 README 数字，版本号 `-rN` +1 | 是（改正式词库 + README） |
 
@@ -286,7 +286,7 @@ git clone 本仓库 && cd AI-Web-Translation-Assistant
 node tools/merge_contrib.js --dry     # 先看统计：新增/跳过/覆盖各多少
 node tools/merge_contrib.js           # 正式合并，自动清理已合并文件、version -rN +1
 node tools/merge_contrib.js --force   # 需要覆盖同名条目时用（改错译）
-# 确认无误后提交 dict/github.zh-CN.json 并推送
+# 确认无误后提交 dict/zh-CN.json 并推送
 ```
 
 > Issue 渠道的自动化（**打标才解析**）：用户提交 Issue 后不会立刻处理，维护者确认要收这条时给它打上「词库贡献」标签，`.github/workflows/dict-issue-intake.yml` 才会跑 `tools/issue_to_contrib.js` 解析正文——

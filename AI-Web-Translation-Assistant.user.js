@@ -9,7 +9,7 @@
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.4.1
+// @version     1.4.2
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @description 合并版：自动检测页面语言，非简体中文自动翻译（英文/日文/韩文/德文等，繁体转简体），F9 可随时手动重译；AI 大模型优先、不可用时回退引擎链。
@@ -2436,6 +2436,18 @@ function looksLikeUiText(text) {
 var DICT_BASE = {};
 for (var _dbK in DICT) DICT_BASE[_dbK] = DICT[_dbK];
 
+/* 统计用：__ 开头的键（__comments-*、__dict-end 等）是词库生成时留下的注释占位，不会命中任何页面文本，计数时排除 */
+function countDictKeys(obj) {
+  var n = 0;
+  for (var k in obj) {
+    if (!hasOwn(obj, k)) continue;
+    if (k.indexOf('__') === 0) continue;
+    n++;
+  }
+  return n;
+}
+var BUILTIN_N = countDictKeys(DICT_BASE);   /* 脚本自带词条数（远端合并前） */
+
 /* ==================================================================
  * 远端词库合并（数据来自仓库 dict/github.zh-CN.json）
  * 规则：
@@ -2501,12 +2513,23 @@ function loadRemoteDict() {
   return n;
 }
 
-/* 词库状态（设置面板与菜单提示用） */
+/* 词库状态（设置面板与菜单提示用）
+ * 三个口径要分清，否则「合计」会比「远端」多出一截、看不出多在哪：
+ *   builtin  脚本自带条数
+ *   dictN    真正生效的词库条数 = builtin + 远端新增（同名条目是被覆盖而非累加）
+ *   aiN      AI 译文记忆：AI 翻过的句子会被记住以便复用，属于本机缓存，不是词库
+ */
 function dictStats() {
   var meta = {};
   try { meta = JSON.parse(Store.get('dict_meta', '{}')) || {}; } catch (e) { meta = {}; }
+  var dictN = countDictKeys(DICT_BASE);
+  var aiN = Math.max(0, countDictKeys(DICT) - dictN);
   return {
-    total: Object.keys(DICT).length,
+    total: countDictKeys(DICT),
+    dictN: dictN,
+    builtin: BUILTIN_N,
+    remoteNew: Math.max(0, dictN - BUILTIN_N),
+    aiN: aiN,
     remoteAdded: REMOTE_STAT.entries,
     version: meta.version || '内置',
     remoteCount: meta.count || 0,
@@ -2942,7 +2965,10 @@ function dictSync(opts, cb) {
 function updateDictManual() {
   toast('正在更新词库…');
   dictSync({ force: true }, function (r) {
-    if (r.ok) toast('词库已更新：v' + r.version + ' · 远端 ' + r.count + ' 条（源：' + r.source + '）');
+    if (r.ok) {
+      var st = I18n.dictStats();
+      toast('词库已更新：v' + r.version + ' · 词库 ' + st.dictN + ' 条（内置 ' + st.builtin + ' + 远端新增 ' + st.remoteNew + '）· 源：' + r.source);
+    }
     else toast('词库更新失败：' + r.reason);
   });
 }
@@ -2984,26 +3010,26 @@ function openAISettings() {
     '*{box-sizing:border-box}' +
     '.mask{position:fixed;inset:0;background:rgba(15,23,42,.42);display:flex;align-items:center;justify-content:center;padding:18px;animation:ghx-fade .14s ease}' +
     '.card{--bg:#fff;--fg:#1f2328;--muted:#656d76;--line:#d8dee4;--soft:#f6f8fa;--field:#fff;--accent:#1a7f37;--accent-h:#17803a;--ring:rgba(26,127,55,.25);--danger:#cf222e;--ok:#1a7f37;' +
-      'width:480px;max-width:100%;max-height:88vh;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);' +
+      'width:480px;max-width:100%;max-height:92vh;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);' +
       'border:1px solid var(--line);border-radius:14px;box-shadow:0 24px 64px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.08);overflow:hidden;' +
       'font:13px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;animation:ghx-pop .18s cubic-bezier(.2,.8,.3,1)}' +
     '@keyframes ghx-fade{from{opacity:0}to{opacity:1}}' +
     '@keyframes ghx-pop{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}' +
-    '.head{display:flex;align-items:flex-start;gap:12px;padding:18px 20px 14px;border-bottom:1px solid var(--line)}' +
+    '.head{display:flex;align-items:flex-start;gap:12px;padding:16px 20px 12px;border-bottom:1px solid var(--line)}' +
     '.head h4{margin:0;font-size:15px;font-weight:600;letter-spacing:.2px}' +
     '.head p{margin:4px 0 0;font-size:12px;color:var(--muted)}' +
     '.head-t{flex:1;min-width:0}' +
     '.x{flex:0 0 auto;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:0;border-radius:7px;background:transparent;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}' +
     '.x:hover{background:var(--soft);color:var(--fg)}' +
-    '.body{padding:4px 20px 8px;overflow:auto;overscroll-behavior:contain;flex:1 1 auto;scrollbar-width:thin;scrollbar-color:#c9d1d9 transparent}' +
+    '.body{padding:2px 20px 6px;overflow:auto;overscroll-behavior:contain;flex:1 1 auto;scrollbar-width:thin;scrollbar-color:#c9d1d9 transparent}' +
     '.body::-webkit-scrollbar{width:8px}' +
     '.body::-webkit-scrollbar-thumb{background:#c9d1d9;border-radius:4px;border:2px solid transparent;background-clip:padding-box}' +
     '.body::-webkit-scrollbar-thumb:hover{background:#adb7c0;background-clip:padding-box}' +
     '.body::-webkit-scrollbar-track{background:transparent}' +
-    '.sec{padding:14px 0;border-bottom:1px solid var(--line)}' +
+    '.sec{padding:10px 0;border-bottom:1px solid var(--line)}' +
     '.sec:last-child{border-bottom:0}' +
     '.sec-t{font-size:11px;font-weight:600;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}' +
-    '.field{display:block;margin-bottom:12px}' +
+    '.field{display:block;margin-bottom:10px}' +
     '.field:last-child{margin-bottom:2px}' +
     '.field>span{display:block;font-size:12px;font-weight:500;color:var(--fg);margin-bottom:6px}' +
     'input[type=text],input[type=password],input[type=number],select{width:100%;height:34px;padding:0 10px;color:var(--fg);background:var(--field);' +
@@ -3019,7 +3045,7 @@ function openAISettings() {
     '.grid3 .field{margin-bottom:8px}' +
     '.grid3 .field>span{text-align:center}' +
     '.grid3 input{text-align:center;padding:0 6px}' +
-    '.switch-row{display:flex;align-items:center;gap:14px;padding:8px 0}' +
+    '.switch-row{display:flex;align-items:center;gap:14px;padding:7px 0}' +
     '.switch-row+.switch-row{border-top:1px dashed var(--line)}' +
     '.switch-row.tight{padding:9px 0}' +
     '.switch-txt{flex:1;min-width:0}' +
@@ -3047,7 +3073,9 @@ function openAISettings() {
     '.dict-row{display:flex;align-items:center;gap:10px;padding:3px 0 2px}' +
     '.dict-info{flex:1;min-width:0;font-size:12px;color:var(--muted);line-height:1.7;word-break:break-word}' +
     '.dict-info b{color:var(--fg);font-weight:500}' +
-    '.hint{font-size:11.5px;color:var(--muted);line-height:1.65;padding:2px 0 2px}' +
+    '.dict-sub{font-size:11px;color:var(--muted);line-height:1.65;margin-top:1px;word-break:break-word}' +
+    '.dict-sub:empty{display:none}' +
+    '.hint{font-size:11.5px;color:var(--muted);line-height:1.65;padding:1px 0}' +
     '.hint code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;background:var(--soft);padding:1px 4px;border-radius:4px}' +
     '@media (prefers-color-scheme:dark){.card{--bg:#161b22;--fg:#e6edf3;--muted:#8b949e;--line:#30363d;--soft:#1c2128;--field:#0d1117;--accent:#238636;--accent-h:#2ea043;--ring:rgba(46,160,67,.3);--danger:#f85149;--ok:#3fb950}' +
       '.mask{background:rgba(1,4,9,.68)}input::placeholder{color:#6e7681}' +
@@ -3118,7 +3146,8 @@ function openAISettings() {
               '<div class="dict-info" id="dictinfo">读取中…</div>' +
               '<button class="btn sm" id="dictupd" type="button">立即更新</button>' +
             '</div>' +
-            '<div class="hint">词库托管在 GitHub 仓库的 <code>dict/github.zh-CN.json</code>。每天北京时间 0 点后首次打开页面自动同步一次；失败会依次换用 5 个源（GitHub 原始地址 + 4 个镜像）。</div>' +
+            '<div class="dict-sub" id="dictsub"></div>' +
+            '<div class="hint">托管于 GitHub <code>dict/github.zh-CN.json</code>，每天 0 点后首次打开同步一次，失败自动换源。</div>' +
           '</div>' +
         '</div>' +
         '<div class="foot">' +
@@ -3175,11 +3204,17 @@ function openAISettings() {
   function renderDictInfo() {
     var el = f('dictinfo');
     if (!el) return;
+    var sub = f('dictsub');
     var s = I18n.dictStats();
-    el.innerHTML = s.synced
-      ? '版本 <b>' + esc(s.version) + '</b> · ' + s.total + ' 条 · ' + esc(s.source) + ' · ' + agoText(s.ts)
-      : '内置词库 ' + s.total + ' 条 · 尚未同步远端（等每天 0 点后首次访问，或点右侧按钮手动更新）';
-    el.title = s.synced ? '远端 ' + s.remoteCount + ' 条 / 合计 ' + s.total + ' 条' : '';
+    var aiText = s.aiN ? ' · AI 记忆 ' + s.aiN + ' 条不计入（本机译文缓存）' : '';
+    if (s.synced) {
+      el.innerHTML = '版本 <b>' + esc(s.version) + '</b> · 词库 <b>' + s.dictN + '</b> 条 · ' + esc(s.source) + ' · ' + agoText(s.ts);
+      sub.textContent = '内置 ' + s.builtin + ' 条 + 远端新增 ' + s.remoteNew + ' 条（远端 ' + s.remoteCount + ' 条同名覆盖）' + aiText;
+    } else {
+      el.innerHTML = '内置词库 <b>' + s.dictN + '</b> 条 · 尚未同步远端（等每天 0 点后首次访问，或点右侧按钮手动更新）';
+      sub.textContent = aiText.replace(/^ · /, '');
+    }
+    el.title = s.synced ? '内置 ' + s.builtin + ' + 远端新增 ' + s.remoteNew + ' = 词库 ' + s.dictN + ' 条；AI 记忆 ' + s.aiN + ' 条不计入' : '';
   }
   f('dictupd').addEventListener('click', function () {
     var btn = f('dictupd');
@@ -3192,8 +3227,8 @@ function openAISettings() {
       btn.textContent = '立即更新';
       renderDictInfo();
       if (r.ok) {
-        var tot = I18n.dictStats().total;
-        msg('词库已更新：v' + r.version + ' · 远端 ' + r.count + ' 条 / 合计 ' + tot + ' 条 · 源：' + r.source, 'ok');
+        var st = I18n.dictStats();
+        msg('词库已更新：v' + r.version + ' · 词库 ' + st.dictN + ' 条（内置 ' + st.builtin + ' + 远端新增 ' + st.remoteNew + '）· 源：' + r.source, 'ok');
       }
       else msg(r.skipped ? r.reason : '更新失败：' + r.reason, r.skipped ? '' : 'err');
     });

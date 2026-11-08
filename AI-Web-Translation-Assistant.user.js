@@ -11,11 +11,11 @@
 // @homepageURL https://github.com/lengxiaobingege/AI-Web-Translation-Assistant
 // @supportURL  https://github.com/lengxiaobingege/AI-Web-Translation-Assistant/issues
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.4.12
+// @version     1.4.13
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @description Non-Chinese pages auto-translate to Chinese, F9 to retranslate anytime; AI model first with free engine fallback; built-in GitHub UI glossary replaces hits instantly at zero cost.
-// @description:zh-CN 非简体中文网页自动翻译成中文，F9 随时重译；AI 大模型优先，失败自动回退免费引擎链；内置 GitHub 界面词条，命中直接替换、不花额度。
+// @description:zh-CN 非简体中文网页自动翻译成中文，F9 随时重译；AI 大模型优先，失败自动回退免费引擎链；内置通用界面词条库，所有网站共用，命中直接替换、不花额度。
 // @icon       data:image/png;base64,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
 // @match       *://*/*
 // @run-at      document-idle
@@ -58,8 +58,8 @@
  *    内置 1656 条界面文案 + 24 条数量/时间模式规则 + CSS 规则；
  *    精确匹配与拆词匹配并用，覆盖按钮、导航、占位符、aria-label、相对时间，
  *    自动排除代码块、文件名、路径、仓库名等不该翻的内容。
- *    词条以 GitHub 界面为主，仅 github.com / gist.github.com 生效；
- *    其它站点跳过这一层，直接进 AI。
+ *    所有网站共用这一套词库，不按站点区分；词条以 GitHub 界面为主，
+ *    但通用界面词（保存、设置、成员、部署等）在其它站点同样命中。
  *
  * B. AI 大模型（所有站点的主力路径）
  *    待译文本按批送给配置好的模型（默认 20 条/批），译文落缓存复用；
@@ -131,9 +131,9 @@
  * ==================== 需人工确认的限制 ====================
  *  1) 图标为本项目自绘的原创图形（几何字母 A + 三条文字线），256x256 PNG、
  *     带透明通道（圆角处透明，连续曲率圆角），以 data URI 内嵌，不依赖网络，
- *     不含任何第三方商标或字体；随本脚本以 MIT 许可发布，可自行替换 @icon 行。
- *  2) GitHub 上 AI 补译成功即不跑引擎链，避免同一节点被翻两次；
- *     想强制机翻：CFG.githubFallback = 'always'。
+ *     不含任何第三方商标或字体；随本脚本一并提供，不单独主张权利，可自行替换 @icon 行。
+ *  2) 引擎链只在「还有没翻的文本」时才跑（AI 关闭 / 失败 / 单条过长都会留下剩余），
+ *     已翻过的节点不会重复请求，所以同一处不会被翻两遍。
  *  3) 整页机翻对去重后每个文本节点发一次请求，默认上限 80 个、并发 3；
  *     Bing / MyMemory 为免费公共接口，量大可能限流，可在 CFG 调整。
  *  4) F9 可能被浏览器或网页占用；已用捕获阶段 + preventDefault 抢占，
@@ -158,7 +158,7 @@ var CFG = {
   pageNodeLimit: 300,           /* 整页机翻最多处理的文本节点数 */
   concurrency: 3,               /* 整页机翻并发数 */
   scanNodeLimit: 2500,          /* 单次 TreeWalker 收集上限 */
-  /* B 界面词条（以 GitHub 界面为主） */
+  /* B 界面词条（所有网站共用同一套词库） */
   githubLang: 'zh-CN',          /* 设为 'off' 可关闭界面词条替换 */
   /* C 词库在线更新：默认源在 GitHub 仓库，按顺序逐个尝试，成功即止 */
   dict: {
@@ -178,7 +178,6 @@ var CFG = {
       url: 'https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/dict/github.zh-CN.json' }
   ],
   descTranslate: false,         /* 仓库描述翻译按钮已移除（接口 400） */
-  githubFallback: 'onFailure',  /* onFailure | always | never：AI 失败时是否用引擎链兜底 */
   ai: {
     enabled: true,
     provider: 'nvidia',
@@ -440,10 +439,6 @@ function collectTextNodes(root) {
   return out;
 }
 
-function isGitHubPage() {
-  var h = location.hostname.toLowerCase();
-  return h === 'github.com' || h === 'gist.github.com' || /\.(github|gist\.github)\.com$/.test(h);
-}
 function focusInEditable() {
   var a = document.activeElement;
   return !!(a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName || '')));
@@ -822,7 +817,7 @@ return { translateText: translateText, runPage: runPage };
 
 
 /* ==================================================================
- * 模块 B：界面词条库（以 GitHub 界面为主）—— 词条 + CSS 规则 + AI 补译
+ * 模块 B：界面词条库（所有网站共用一套）—— 词条 + CSS 规则 + AI 补译
  * 独立作用域；去掉了自动启动、MutationObserver、设置面板与全部菜单命令。
  * ================================================================== */
 var I18n = (function () {
@@ -3992,25 +3987,16 @@ async function runAll(source) {
     if (!root) throw new Error('页面尚未就绪');
     var nodes = collectTextNodes(root);   /* 一次遍历，两个模块共用 */
 
-    if (isGitHubPage()) {
-      var dictHits = I18n.applyDict(nodes, root);
-      var stat = await new Promise(function (resolve) { I18n.aiComplete(nodes, resolve); });
-      var needFallback = (CFG.githubFallback === 'always') ||
-        (CFG.githubFallback === 'onFailure' && stat.failed > 0);
-      var tr = { translated: 0, failed: 0, skipped: true };
-      if (needFallback) tr = await Trans.runPage(remainingToTranslate(nodes));
-      toast('界面词条：词库 ' + dictHits + ' 处，AI ' + stat.ok + ' 条' +
-        (stat.failed ? '（失败 ' + stat.failed + ' 批）' : '') +
-        '，引擎兜底 ' + tr.translated + ' 条');
-    } else {
-      /* AI 优先：先把能交给大模型的文本翻掉，剩下的（AI 不可用 / 失败 / 超长）再走引擎链 */
-      var aiStat = await new Promise(function (resolve) { I18n.aiComplete(nodes, resolve); });
-      var rest = remainingToTranslate(nodes);
-      var res = await Trans.runPage(rest);
-      toast('整页翻译：AI ' + aiStat.ok + ' 条' +
-        (rest.length ? '，引擎兜底 ' + res.translated + ' 条' : '') +
-        (!aiStat.ok && !rest.length ? '（无待译文本）' : ''));
-    }
+    /* 所有站点共用同一套词条库：先吃词条，剩下的交给 AI，AI 处理不了的再走引擎链 */
+    var dictHits = I18n.applyDict(nodes, root);
+    var stat = await new Promise(function (resolve) { I18n.aiComplete(nodes, resolve); });
+    var rest = remainingToTranslate(nodes);
+    var tr = { translated: 0, failed: 0, skipped: true };
+    if (rest.length) tr = await Trans.runPage(rest);
+    toast('界面词条 ' + dictHits + ' 处，AI ' + stat.ok + ' 条' +
+      (stat.failed ? '（失败 ' + stat.failed + ' 批）' : '') +
+      (rest.length ? '，引擎兜底 ' + tr.translated + ' 条' : '') +
+      (!dictHits && !stat.ok && !rest.length ? '（无待译文本）' : ''));
   } catch (e) {
     toast('执行失败：' + (e && e.message ? e.message : e));
   } finally {

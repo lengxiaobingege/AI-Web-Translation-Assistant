@@ -1,0 +1,96 @@
+name: 词库贡献合并
+
+# 维护者手动触发：把 dict/contribs/*.json（用户脚本回传的词条）合并进正式词库。
+# 只加不改是默认行为；需要覆盖已有条目时把 force 设为 true。
+# 触发运行即视为人工审核通过，合并结果直接提交到 main。
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: '覆盖已有同名条目（true/false，默认只加不改）'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dict-merge-contrib
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    name: 合并用户贡献
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: 合并前统计
+        id: base
+        run: |
+          echo "count=$(node -e 'console.log(require("./dict/github.zh-CN.json").count)')" >> $GITHUB_OUTPUT
+          echo "version=$(node -e 'console.log(require("./dict/github.zh-CN.json").version)')" >> $GITHUB_OUTPUT
+          n=$(ls dict/contribs/*.json 2>/dev/null | wc -l || echo 0)
+          echo "files=${n}" >> $GITHUB_OUTPUT
+
+      - name: 合并贡献词条
+        run: |
+          if [ "${{ steps.base.outputs.files }}" = "0" ]; then
+            echo "::notice::dict/contribs 下没有待合并的贡献文件"
+          else
+            ARGS=""
+            if [ "${{ github.event.inputs.force }}" = "true" ]; then ARGS="--force"; fi
+            node tools/merge_contrib.js ${ARGS}
+          fi
+
+      - name: 合并后自检
+        id: lint
+        if: steps.base.outputs.files != '0'
+        run: |
+          set +e
+          node tools/dict_lint.js
+          code=$?
+          set -e
+          if [ "${code}" != "0" ]; then
+            echo "::warning::合并后未通过词库检查，已放弃本次提交"
+            echo "ok=false" >> $GITHUB_OUTPUT
+            git checkout -- dict/
+          else
+            echo "ok=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 提交并推送
+        if: steps.lint.outputs.ok == 'true'
+        run: |
+          if git diff --quiet -- dict/; then
+            echo "::notice::词库没有变化，无需提交"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          NEW_COUNT=$(node -e 'console.log(require("./dict/github.zh-CN.json").count)')
+          NEW_VERSION=$(node -e 'console.log(require("./dict/github.zh-CN.json").version)')
+          git add -A dict/
+          git commit -m "合并用户贡献：${{ steps.base.outputs.count }} → ${NEW_COUNT} 条（${NEW_VERSION}）" \
+                     -m "由维护者手动触发的词库贡献合并，来源 dict/contribs/，已清理对应贡献文件。"
+          git push origin HEAD:main
+          echo "::notice::已提交：${NEW_COUNT} 条（${NEW_VERSION}），所有用户将在每天 0 点后自动同步"
+
+      - name: 写入摘要
+        if: always()
+        run: |
+          node tools/dict_report.js --out report.md 2>/dev/null || true
+          if [ -f report.md ]; then cat report.md >> $GITHUB_STEP_SUMMARY; fi
+          {
+            echo ""
+            echo "---"
+            echo "- 合并前：${{ steps.base.outputs.count }} 条（${{ steps.base.outputs.version }}），待处理贡献文件 ${{ steps.base.outputs.files }} 个"
+            echo "- 模式：${{ github.event.inputs.force == 'true' && '覆盖已有条目（--force）' || '只加不改' }}"
+          } >> $GITHUB_STEP_SUMMARY

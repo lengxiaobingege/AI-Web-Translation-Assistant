@@ -36,6 +36,20 @@ const CAND_PATH = path.resolve(root, process.env.CANDIDATES || 'tools/candidates
 
 const normKey = (s) => String(s).replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
 
+/* 脱敏：防止服务商把 Key 回显在错误正文里，进而被打进 Actions 日志
+ * 公开仓库的日志任何人可见，这一步不能省 */
+function redact(text) {
+  let out = String(text == null ? '' : text);
+  if (API_KEY && API_KEY.length >= 8) {
+    out = out.split(API_KEY).join('***');
+    /* 也挡住 Bearer 后跟的整段、以及 sk- 开头的疑似 Key */
+    out = out.replace(/(Bearer\s+)[A-Za-z0-9_\-\.]{8,}/gi, '$1***');
+    out = out.replace(/\bsk-[A-Za-z0-9_\-\.]{8,}/g, 'sk-***');
+    out = out.replace(/\b(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{16,}/g, '$1_***');
+  }
+  return out;
+}
+
 if (!API_KEY) {
   console.log('未配置 AI_API_KEY，跳过自动续写（这不视为失败）。');
   process.exit(0);
@@ -113,12 +127,12 @@ async function callAI(items) {
   });
   if (!res.ok) {
     const t = await res.text();
-    throw new Error('HTTP ' + res.status + ' ' + t.slice(0, 300));
+    throw new Error('HTTP ' + res.status + ' ' + redact(t).slice(0, 300));
   }
   const j = await res.json();
   const txt = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '';
   const m = txt.match(/\{[\s\S]*\}/);
-  if (!m) throw new Error('返回内容里没有 JSON：' + txt.slice(0, 200));
+  if (!m) throw new Error('返回内容里没有 JSON：' + redact(txt).slice(0, 200));
   return JSON.parse(m[0]);
 }
 
@@ -132,7 +146,7 @@ for (let i = 0; i < queued.length; i += BATCH) {
   try {
     got = await callAI(items);
   } catch (e) {
-    console.log('第 ' + (i / BATCH + 1) + ' 批失败：' + e.message);
+    console.log('第 ' + (i / BATCH + 1) + ' 批失败：' + redact(e && e.message));
     continue;
   }
   for (const key of items) {

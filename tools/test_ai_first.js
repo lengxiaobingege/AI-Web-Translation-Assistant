@@ -35,7 +35,7 @@ function mockEl(tag) {
   return el;
 }
 
-async function run({ aiMode, texts, settings, host, lang, pageText, manual = true, presses = 1, snapshots = null, dictMode = 'off', waitDict = false, extraDict = null, contrib = null, contribHits = null, pushPerm = true }) {
+async function run({ aiMode, texts, settings, host, lang, pageText, manual = true, presses = 1, snapshots = null, dictMode = 'off', waitDict = false, extraDict = null, contrib = null, contribHits = null, pushPerm = true, ghDirectFail = false, ghStatus = 0 }) {
   const calls = [];
   const payloads = [];
   const headers = [];
@@ -119,7 +119,13 @@ async function run({ aiMode, texts, settings, host, lang, pageText, manual = tru
       headers.push(o.headers || {});
       timers.push(() => {
         if (/api\.github\.com/.test(o.url)) {
+          const isMirror = /gh-proxy\.com/.test(o.url);
           ghCalls.push({ url: o.url, method: String(o.method || 'GET').toUpperCase(), data: String(o.data || ''), headers: o.headers || {} });
+          if (ghDirectFail && !isMirror) { o.onerror(); return; }   // 模拟 api.github.com 被墙
+          if (ghStatus && !isMirror) {                              // 模拟 GitHub 真的回了错误码
+            o.onload({ status: ghStatus, responseText: '{"message":"Bad credentials"}' });
+            return;
+          }
           if (/\/issues$/.test(o.url)) {
             // 建单：返回编号与链接，带 labels 时回显，便于断言
             let sent = {};
@@ -358,16 +364,16 @@ const TW_PAGE = ('這個頁面使用繁體中文撰寫，用來驗證自動翻�
     check('节点最终为译文', /^译:/.test(r.nodes[0].nodeValue), r.nodes[0].nodeValue);
   }
 
-  console.log('场景 15：词库同步 —— 5 个源全部失败');
+  console.log('场景 15：词库同步 —— 4 个源全部失败');
   {
     const r = await run({
       aiMode: 'ok', host: 'github.com', waitDict: true, dictMode: 'fail',
       texts: ['Zebra crossing ahead']
     });
     const hosts = dictReq(r).map(u => (u.match(/^https?:\/\/([^/]+)/) || ['', '?'])[1]);
-    check('依次试了 5 个源', dictReq(r).length === 5, 'dict=' + dictReq(r).length);
+    check('4 个源都试过', dictReq(r).length === 4, 'dict=' + dictReq(r).length);
     check('首个是 GitHub 原始地址', /raw\.githubusercontent/.test(hosts[0] || ''), hosts.join(' > '));
-    check('末个是镜像反代', /ghfast/.test(hosts[4] || ''), hosts.join(' > '));
+    check('第二个是 gh-proxy 反代', /gh-proxy/.test(hosts[1] || ''), hosts.join(' > '));
     check('未写入词库缓存', !r.stored['ghx2_dict_meta'] && !r.stored['ghx2_dict_remote'], JSON.stringify(Object.keys(r.stored)));
     check('翻译不受影响', ai(r).length >= 1, 'ai=' + ai(r).length);
   }
@@ -391,7 +397,7 @@ const TW_PAGE = ('這個頁面使用繁體中文撰寫，用來驗證自動翻�
   console.log('场景 17：镜像返回 HTML 错误页 → 判为失败并继续换源');
   {
     const r = await run({ aiMode: 'ok', host: 'github.com', waitDict: true, dictMode: 'html', texts: ['Zebra crossing ahead'] });
-    check('5 个源都试过', dictReq(r).length === 5, 'dict=' + dictReq(r).length);
+    check('4 个源都试过', dictReq(r).length === 4, 'dict=' + dictReq(r).length);
     check('未写入无效词库', !r.stored['ghx2_dict_meta'], JSON.stringify(Object.keys(r.stored)));
   }
 
@@ -537,6 +543,34 @@ const TW_PAGE = ('這個頁面使用繁體中文撰寫，用來驗證自動翻�
       check('不带标签', sent.labels === undefined, JSON.stringify(sent.labels));
       check('正文仍完整提交', String(sent.body || '').indexOf('<!-- ghx-contrib -->') === 0, String(sent.body || '').slice(0, 24));
     }
+  }
+
+  console.log('场景 23：api.github.com 直连不通 → 自动换 gh-proxy 镜像完成写入');
+  {
+    const r = await run({
+      aiMode: 'ok', texts: ['Zebra crossing ahead'],
+      contrib: { enabled: true, token: 'dummy-owner-token' },
+      contribHits: { 'mirror probe phrase here': '镜像探针' }, ghDirectFail: true
+    });
+    r.menus['上传词库增量到 GitHub']();
+    await r.drain();
+    const urls = r.ghCalls.map(c => c.url);
+    check('先尝试直连', /^https:\/\/api\.github\.com\//.test(urls[0] || ''), (urls[0] || '').slice(0, 50));
+    check('直连失败后换镜像', /gh-proxy\.com\/https:\/\/api\.github\.com\//.test(urls[1] || ''), (urls[1] || '').slice(0, 70));
+    check('镜像写入成功', /已上传/.test(r.toasts()), r.toasts().slice(-70));
+    const left = Object.keys(JSON.parse(r.stored['ghx2_contrib_hits'] || '{}')).length;
+    check('本地清单已清空', left === 0, String(left));
+
+    // 23b：GitHub 真的回了 401（Token 错）→ 报错，不换镜像重复提交
+    const r2 = await run({
+      aiMode: 'ok', texts: ['Zebra crossing ahead'],
+      contrib: { enabled: true, token: 'dummy-bad-token' },
+      contribHits: { 'bad token probe here': '坏令牌' }, ghStatus: 401
+    });
+    r2.menus['上传词库增量到 GitHub']();
+    await r2.drain();
+    check('401 不重试镜像', r2.ghCalls.length === 1, r2.ghCalls.length + ' 次请求');
+    check('提示 HTTP 401', /401/.test(r2.toasts()), r2.toasts().slice(-70));
   }
 
   console.log('\n结果: ' + pass + ' 通过 / ' + fail + ' 失败');

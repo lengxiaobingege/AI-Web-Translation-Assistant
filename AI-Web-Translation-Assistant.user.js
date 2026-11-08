@@ -9,7 +9,7 @@
 // @name:zh-CN  AI网页翻译助手
 // @namespace   https://github.com/lengxiaobingege/AI-Web-Translation-Assistant.
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.4.2
+// @version     1.4.3
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant./main/AI-Web-Translation-Assistant.user.js
 // @description 合并版：自动检测页面语言，非简体中文自动翻译（英文/日文/韩文/德文等，繁体转简体），F9 可随时手动重译；AI 大模型优先、不可用时回退引擎链。
@@ -2973,6 +2973,14 @@ function updateDictManual() {
   });
 }
 
+/* 关闭翻译：把本页所有已翻译的节点恢复为原文；之后按 F9 可随时重新翻译 */
+function closeTranslation() {
+  if (running) { toast('正在翻译中，请等本轮结束后再恢复原文'); return; }
+  var n = restoreOriginals();
+  if (!n) toast('当前页面没有已翻译的内容');
+  else toast('已关闭翻译，恢复原文 ' + n + ' 处（按 F9 可重新翻译）');
+}
+
 
 /* ==================================================================
  * AI 翻译设置面板（仅配置大模型；翻译仍只由 F9 触发）
@@ -3320,6 +3328,7 @@ try {
   if (typeof GM_registerMenuCommand === 'function') {
     GM_registerMenuCommand('AI 翻译设置', openAISettings);
     GM_registerMenuCommand('立即更新词库', updateDictManual);
+    GM_registerMenuCommand('关闭翻译（恢复原文）', closeTranslation);
   }
 } catch (e) { }
 

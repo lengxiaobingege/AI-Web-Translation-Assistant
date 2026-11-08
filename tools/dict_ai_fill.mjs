@@ -71,7 +71,9 @@ if (!API_KEY) {
  * 表现成「Invalid API key」，很难看出根因。 */
 console.log('接口：' + BASE_URL);
 console.log('模型：' + MODEL);
-console.log('凭据：' + API_KEY.slice(0, 5) + '***' + API_KEY.slice(-4) + '（长度 ' + API_KEY.length + '）');
+/* 只打印前缀和长度，绝不打印尾部——公开仓库的日志全世界可读，
+ * 露出前几位已经足够判断「Key 属于哪家」，尾部则可能被用来缩小爆破范围。 */
+console.log('凭据：' + API_KEY.slice(0, 5) + '***（长度 ' + API_KEY.length + '）');
 
 const data = JSON.parse(fs.readFileSync(DICT_PATH, 'utf8'));
 const dict = data.dict;

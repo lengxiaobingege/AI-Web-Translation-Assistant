@@ -2,11 +2,11 @@
 
 > 任何网页，只要不是简体中文就自动翻成中文；F9 随时重译。三层路径依次接力：**本地界面词条 → AI 大模型 → 免费引擎链**，前一层能解决就不花后一层的钱。
 
-用户脚本，装一个脚本管理器（篡改猴、脚本猫、暴力猴等）即可 · 当前版本 **1.4.17** · [安装](#安装) · [国内网络与 GitHub 访问](#国内网络与-github-访问)
+用户脚本，装一个脚本管理器（篡改猴、脚本猫、暴力猴等）即可 · 当前版本 **1.4.18** · [安装](#安装) · [国内网络与 GitHub 访问](#国内网络与-github-访问)
 
 ## 功能
 
-- **整页翻译（AI 优先）**：不论什么站点，都先把文本交给配置好的大模型批量翻译；AI 未启用、没填 Key、请求失败，或文本超出 AI 处理范围（单条 >600 字符或 >150 词）的那部分，才回退到 Bing → MyMemory → Google 引擎链。非简体中文网页会自动触发这一整套流程，按 F9 也能随时重译。
+- **整页翻译**：所有站点同一条流程 —— 界面词条命中即替换，剩余文本交给配置好的大模型批量翻译；AI 未启用、没填 Key、请求失败，或文本超出 AI 处理范围（单条 >600 字符或 >150 词）的那部分，才回退到 Bing → MyMemory → Google 引擎链。非简体中文网页会自动触发这一整套流程，按 F9 也能随时重译。
 - **界面词条**：内置常见界面文案 + 数量/时间模式规则 + CSS 规则，远端词条库每天从仓库同步，覆盖导航、按钮、属性、相对时间、占位符等，自动排除代码块、文件名、路径。**所有网站共用同一套词库，不按站点区分**——词条以 GitHub 界面用词为主，但保存、设置、成员、部署、上次修改这类通用界面词在任何网页都会命中。具体条数见 [词库规模](#词库规模自动更新)，生效范围见 [界面词条的覆盖范围](#界面词条的覆盖范围)。
 - **免费引擎链**：Bing 鉴权失败自动刷新重试，上次成功的引擎优先，长文本自动分段。不填任何 Key 也能用。
 - **AI 翻译**：默认开启。待译文本按批（默认 20 条/批）交给大模型，译文写入缓存，二次访问同一句直接命中、零请求。提示词带页面标题与站点上下文，按「中文网站原生文案」标准翻译：界面短词保持简短、句子译得通顺、杜绝翻译腔。
@@ -29,6 +29,17 @@
 - **API Key** 只存本机脚本管理器存储，公开版内置 Key 为空；换管理器要重填一次。
 - **词库是纯数据**：JSON 里的 24 条正则和 1 条 HTML 替换规则只用于文本替换，不是可执行代码，且来自同一个公开仓库。
 - **想少发请求**：设置里关掉「非简体中文页面自动翻译」，就只有按 F9 才会发起翻译请求。AI 也能单独关闭，但关掉后 F9 仍会走免费引擎链、页面文本照样外发。介意页面内容离开本机的话，请不要安装。
+
+**完整对外域名**（与脚本头 `@connect` 一致，未列出的域名不会发起请求）：
+
+| 用途 | 域名 |
+| --- | --- |
+| 免费翻译引擎 | `cn.bing.com`、`www.bing.com`、`translate.googleapis.com`、`api.mymemory.translated.net` |
+| AI 服务商（只连设置里选定的那一个） | `integrate.api.nvidia.com`、`api.deepseek.com`、`api.openai.com`、`dashscope.aliyuncs.com`、`open.bigmodel.cn`、`api.moonshot.cn`、`api.siliconflow.cn` |
+| 词库同步（只读 GET） | `raw.githubusercontent.com`、`gh-proxy.com`、`testingcf.jsdelivr.net`、`cdn.jsdelivr.net` |
+| 词条回传（写，需 Token） | `api.github.com` |
+
+脚本自身不检查更新、不加载远端脚本，更新交给脚本管理器按 `@updateURL` 处理（频率由管理器决定，不会高于每天一次）。按 Greasy Fork 六种 `@antifeature`（ads / membership / miner / payment / referral-link / tracking）逐条核对，本脚本均不涉及。
 
 ## 触发方式
 
@@ -344,6 +355,8 @@ node tools/merge_contrib.js --force   # 需要覆盖同名条目时用（改错�
 
 只提供**用户脚本**这一种形态，没有浏览器扩展版本，也不需要会命令行：先装一个脚本管理器，再点一次安装地址就完事。
 
+上架后 **Greasy Fork 脚本页是首选入口**（链接见 [发布地址](#发布地址)）；下面三个地址是 GitHub 直装备用，从这些地址安装的用户由脚本头 `@updateURL` 负责更新。
+
 ### 支持哪些脚本管理器
 
 脚本只用到 4 类 GM 接口，且在**存储**与**跨域**两处集中适配，所以主流管理器都能直接跑：
@@ -389,6 +402,8 @@ https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/AI
 
 从 **Greasy Fork** 安装的副本不适用上一句：Greasy Fork 发布时会自动把这两个字段改写成指向它自己，更新不再经过 GitHub raw；脚本头不用为它改动，GitHub 直装用户也不受影响。
 
+脚本自身不实现更新检查，也不加载远端脚本；检查频率完全由脚本管理器决定，不会高于每天一次。
+
 检查更新的入口各家不同：篡改猴/暴力猴是扩展图标 → 本脚本 → 检查更新；脚本猫是面板里的脚本详情 → 更新。
 
 手动安装的脚本若不自动更新，在本脚本的编辑页把上一步的 raw 地址填进 **更新地址（Update URL）** 与 **下载地址（Download URL）**，保存后点「检查更新」。
@@ -410,7 +425,7 @@ https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/AI
 - [k1995/github-i18n-plugin](https://github.com/k1995/github-i18n-plugin) —— 界面词条与替换规则部分
 - [syhyz1990/translate](https://github.com/syhyz1990/translate) —— 整页翻译引擎链部分
 
-二者彼此独立，无官方关联。
+二者彼此独立，无官方关联。引用基准为两个上游默认分支的源码快照（2026-11-06），以内嵌方式合并改编，未通过 `@require` 加载外部代码；权益与许可状态见「许可」。
 
 ## 作者
 
@@ -433,11 +448,13 @@ https://cdn.jsdelivr.net/gh/lengxiaobingege/AI-Web-Translation-Assistant@main/AI
 
 ## 发布地址
 
-本仓库是源码与词库的唯一发布地址，后续改动都推送至此：
+**源码与词库**：本仓库是唯一来源，后续改动都推送至此：
 
 <https://github.com/lengxiaobingege/AI-Web-Translation-Assistant>
 
-用户安装入口另在 **Greasy Fork** 上架，可避开国内打不开 `raw.githubusercontent.com` 的问题；脚本页链接发布后补到本节与安装章节。维护者操作步骤见 [Greasy Fork 上架手册](docs/GreasyFork上架.md)。
+**用户安装**：Greasy Fork（脚本页链接发布后补到本节与安装章节）。从 Greasy Fork 安装时，它会按官方规则把 `@updateURL` / `@downloadURL` 改写成指向自己，更新不再经过国内打不开的 `raw.githubusercontent.com`；GitHub 直装用户仍走原地址，脚本头不需要为上架改动。
+
+维护者操作步骤与官方规则逐条对照见 [Greasy Fork 上架手册](docs/GreasyFork上架.md)。按该规则核对：脚本约 221 KB（上限 2 MB）、全明文无压缩混淆、不引用外部可执行代码、六种 `@antifeature` 均不涉及、无 `@license`（上游未授权，不代声明）。
 
 ## 许可
 

@@ -1,13 +1,20 @@
 // ==UserScript==
 // 作者：lengxiaobingege（https://github.com/lengxiaobingege）与 WorkBuddy 共同编写。
-// 二创说明：本脚本由上述作者合并改编而成，基于以下两个独立项目：
-//           - https://github.com/k1995/github-i18n-plugin —— 界面词条（UI 文案）与替换规则
-//           - https://github.com/syhyz1990/translate —— 整页翻译引擎链
-//           来源项目的代码、词条及相关权益归各自原作者所有，本脚本仅包含合并与二创新增内容。
-//           引用基准：两个上游仓库默认分支的源码快照（抓取于 2026-11-06），
+// 二创说明：本脚本由上述作者合并改编而成，内嵌了以下两个独立项目的部分实现。
+//           按发布平台规则逐项给出每个内嵌库的「名称 / 来源 / 版本」：
+//           1) 名称 k1995/github-i18n-plugin（界面词条与替换规则，模块 A）
+//              来源 https://github.com/k1995/github-i18n-plugin
+//              版本 默认分支 master 的源码快照（抓取于 2026-11-06），
+//                   对应提交 31c9673f94e814a9917304c0b859a29e157765e6
+//           2) 名称 syhyz1990/translate（整页翻译引擎链，模块 C）
+//              来源 https://github.com/syhyz1990/translate
+//              版本 默认分支 main 的源码快照（抓取于 2026-11-06），
+//                   对应提交 ba2a9d6f1a2ebaff792c490a543e59fa4f132323
+//           来源项目的代码、词条及相关权益归各自原作者所有，本脚本仅包含合并与二创新增内容，
 //           以内嵌方式合并改编，未使用 @require 等外部代码引用。
 //           两个上游仓库均未声明开源许可（无 LICENSE 文件），本脚本不代其授权，
 //           也不对合并后的整体声明 MIT 等许可；详见 README「许可」章节。
+//           脚本图标为本项目自绘的原创几何图形，不含第三方图像、商标或字体素材。
 // @name        AI-Web-Translation-Assistant
 // @name:zh-CN  AI 网页翻译助手
 // @name:en     AI Web Translation Assistant
@@ -15,7 +22,7 @@
 // @homepageURL https://github.com/lengxiaobingege/AI-Web-Translation-Assistant
 // @supportURL  https://github.com/lengxiaobingege/AI-Web-Translation-Assistant/issues
 // @author      lengxiaobingege & WorkBuddy
-// @version     1.4.18
+// @version     1.4.19
 // @downloadURL https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @updateURL   https://raw.githubusercontent.com/lengxiaobingege/AI-Web-Translation-Assistant/main/AI-Web-Translation-Assistant.user.js
 // @description Non-Chinese pages auto-translate to Chinese, F9 to retranslate anytime; AI model first with free engine fallback; one shared UI glossary works on every site, replacing hits instantly at zero cost; optional glossary contribution is off by default.

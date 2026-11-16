@@ -4,7 +4,7 @@
  *   1. 默认「只加不改」——正式词库里已有的键一律保留，贡献里同名条目跳过（避免把错译盖上去）
  *   2. --force 时用贡献值覆盖正式词库（改错译时手动用）
  *   3. --dry 只打印统计，不写文件
- *   4. 合并后按日期重排 + 更新 count 字段；version 保持不变（要改版本号请用 build_dict.js 的流程）
+ *   4. 合并后更新 count 字段；version 按当天日期刷新（与 dict_ai_fill.mjs 同口径：跨天用新日期，同日 -rN 递增）
  *
  * 用法：
  *   node tools/merge_contrib.js            # 合并 dict/contribs/*.json
@@ -12,7 +12,8 @@
  *   node tools/merge_contrib.js --force    # 覆盖同名条目
  *
  * 合并成功后：自动删除已读取的 contribs/*.json（内容已进正式词库，避免重复合并），
- * 并把 version 的 -rN 后缀 +1（如 2026.11.08-r1 → 2026.11.08-r2），方便面板上看出变化。
+ * 并按当天日期刷新 version：跨天重置为当天日期（如 2026.11.09-r2 → 2026.11.16），
+ * 同一天多次合并则在日期后加 -rN（如 2026.11.16 → 2026.11.16-r1），方便面板上看出变化。
  */
 const fs = require('fs');
 const path = require('path');
@@ -72,10 +73,13 @@ if (!added && !overwritten) { console.log('没有需要写入的变更。'); pro
 
 dictFile.dict = dict;
 dictFile.count = Object.keys(dict).length;
-if (typeof dictFile.version === 'string') {
-  if (/-r\d+$/.test(dictFile.version)) dictFile.version = dictFile.version.replace(/-r(\d+)$/, (_, n) => '-r' + (Number(n) + 1));
-  else dictFile.version += '-r1';
-}
+/* version 带日期，与 dict_ai_fill.mjs 同口径：跨天重置为新日期，同一天多次运行用 -rN 区分 */
+const today = new Date().toISOString().slice(0, 10).replace(/-/g, '.');
+const prev = String(dictFile.version || '');
+const sameDay = prev.startsWith(today);
+const rev = sameDay && /-r(\d+)$/.test(prev) ? Number(prev.match(/-r(\d+)$/)[1]) + 1 : 1;
+dictFile.version = sameDay ? today + '-r' + rev : today;
+dictFile.updatedAt = new Date().toISOString();
 fs.writeFileSync(dictPath, JSON.stringify(dictFile, null, 2) + '\n', 'utf8');
 
 /* 清理已合并的贡献文件，防止下次重复统计 */

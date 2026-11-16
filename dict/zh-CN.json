@@ -2,8 +2,8 @@
   "schema": 1,
   "name": "github-i18n-zh-CN",
   "target": "zh-CN",
-  "version": "2026.11.09-r2",
-  "updatedAt": "2026-11-09T12:30:01.446Z",
+  "version": "2026.11.16",
+  "updatedAt": "2026-11-16T09:13:35.000Z",
   "note": "GitHub 界面词条库。键为小写、空格归一的英文原文；值为简体中文。本版由 GitHub Actions 自动补充 5 条（2026-11-09）。",
   "count": 3786,
   "patterns": [

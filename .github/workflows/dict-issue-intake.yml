@@ -4,18 +4,24 @@ name: 词库 Issue 接收
 # 两条入口：
 #   1) 维护者自己（OWNER / MEMBER / COLLABORATOR）开的 Issue —— 作者即审核人，直接解析；
 #   2) 其他人开的 Issue —— 必须由维护者打上「词库贡献」标签才解析（打标 = 人工确认）。
-# 也可以从 Actions 页手动触发并填写 Issue 编号。
+# 也可以从 Actions 页手动触发并填写 Issue 编号；留空则扫描全部待处理 Issue。
 #
+# 每小时任务顺序：12:00 续写 → 13:00 本任务 → 14:00 合并 → 15:00 质检 → 16:00 统计。
+# 定时触发时扫描所有带「词库贡献」、且未标记 dict-processed 的 open Issue，逐个解析；
+# 处理完打上 dict-processed 标签，避免每小时重复处理同一个 Issue。
 # 解析结果写入 dict/contribs/contrib-issue-<编号>.json，进入与脚本回传相同的队列；
-# 正式合并由每天 12:20 的「词库贡献合并」自动完成。
+# 正式合并由 14:00 的「词库贡献合并」完成。
 on:
+  schedule:
+    # 每天北京时间 13:00（UTC 05:00）；排在 12:00 续写之后、14:00 合并之前
+    - cron: '0 5 * * *'
   issues:
     types: [opened, labeled]
   workflow_dispatch:
     inputs:
       issue_number:
-        description: '要解析的 Issue 编号'
-        required: true
+        description: '要解析的 Issue 编号（留空则扫描所有带「词库贡献」标签的待处理 Issue）'
+        required: false
 
 permissions:
   contents: write
@@ -28,8 +34,9 @@ concurrency:
 jobs:
   intake:
     name: 解析 Issue 词条
-    # 手动触发无条件执行；打标只看「词库贡献」；自己人开的 Issue 直接放行
+    # 定时/手动无条件执行；打标只看「词库贡献」；自己人开的 Issue 直接放行
     if: |
+      github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event.action == 'labeled' && github.event.label.name == '词库贡献') ||
       (github.event.action == 'opened' && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association))
@@ -46,69 +53,78 @@ jobs:
         with:
           node-version: '22'
 
-      - name: 取回 Issue 正文
-        id: fetch
+      - name: 确定要处理的 Issue 列表
+        id: pick
         run: |
           N="${{ github.event.issue.number || github.event.inputs.issue_number }}"
-          echo "num=${N}" >> $GITHUB_OUTPUT
-          gh api "repos/${{ github.repository }}/issues/${N}" --jq '.body // ""' > issue_body.txt
-          echo "正文长度：$(wc -c < issue_body.txt) 字节"
-
-      - name: 解析词条
-        id: parse
-        env:
-          ISSUE_NUMBER: ${{ steps.fetch.outputs.num }}
-        run: |
-          ISSUE_BODY="$(cat issue_body.txt)" node tools/issue_to_contrib.js
-
-      - name: 提交到贡献队列
-        id: commit
-        if: steps.parse.outputs.count != '0'
-        run: |
-          FILE="dict/contribs/contrib-issue-${{ steps.fetch.outputs.num }}.json"
-          if [ ! -f "$FILE" ]; then
-            echo "::notice::没有生成贡献文件"
-            echo "pushed=false" >> $GITHUB_OUTPUT
-            exit 0
+          if [ -n "$N" ]; then
+            echo "nums=$N" >> $GITHUB_OUTPUT
+            echo "处理指定 Issue #$N"
+          else
+            # 确保已处理标记存在（再次创建会 422，忽略即可）
+            gh api "repos/${{ github.repository }}/labels" \
+              -f name=dict-processed -f color=0e8a16 \
+              -f description="词库 Issue 已处理，避免定时重复解析" > /dev/null 2>&1 || true
+            NUMS=$(gh api "repos/${{ github.repository }}/issues?state=open&labels=%E8%AF%8D%E5%BA%93%E8%B4%A1%E7%8C%AE&per_page=100" \
+              --jq '.[] | select((.labels | map(.name) | index("dict-processed")) == null) | .number' | tr '\n' ' ')
+            echo "nums=$NUMS" >> $GITHUB_OUTPUT
+            echo "扫描到待处理 Issue: ${NUMS:-（无）}"
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "$FILE"
-          if git diff --cached --quiet; then
-            echo "::notice::贡献文件已存在且内容相同，无需提交"
-            echo "pushed=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          git commit -m "词库贡献：接收 Issue #${{ steps.fetch.outputs.num }} 的 ${{ steps.parse.outputs.count }} 条词条" \
-                     -m "维护者打标确认后由 Issue 自动解析生成，待触发「词库贡献合并」进入正式词库。"
-          git push origin HEAD:main
-          echo "pushed=true" >> $GITHUB_OUTPUT
 
-      - name: 回帖告知结果
-        if: always() && steps.parse.outputs.count != ''
-        uses: actions/github-script@v8
+      - name: 逐个解析并提交
         env:
-          COUNT: ${{ steps.parse.outputs.count }}
-          SKIPPED: ${{ steps.parse.outputs.skipped }}
-          PUSHED: ${{ steps.commit.outputs.pushed }}
-        with:
-          script: |
-            const num = Number('${{ steps.fetch.outputs.num }}');
-            const count = process.env.COUNT || '0';
-            const skipped = process.env.SKIPPED || '0';
-            const pushed = process.env.PUSHED === 'true';
-            const body = count === '0'
-              ? '未从本 Issue 中解析到可用词条。请确认每行格式为 `原文 → 译文`（一行一条），也可由维护者手动处理。'
-              : [
-                  `已接收 **${count}** 条词条${skipped !== '0' ? `（另有 ${skipped} 行因格式/超长/反向而跳过）` : ''}。`,
-                  '',
-                  pushed ? '已写入 `dict/contribs/`，等待维护者触发「词库贡献合并」；合并后所有用户会在次日自动同步。' : '贡献文件已存在，无需重复提交。',
-                  '',
-                  '感谢贡献！',
-                ].join('\n');
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: num,
-              body,
-            });
+          NUMS: ${{ steps.pick.outputs.nums }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          # 手动触发总是回帖；定时触发仅在新贡献入库时回帖，避免每小时刷评论
+          SHOULD_COMMENT=false
+          [ "$EVENT" = "workflow_dispatch" ] && SHOULD_COMMENT=true
+          ANY_PUSHED=false
+
+          gh api "repos/${{ github.repository }}/labels" \
+            -f name=dict-processed -f color=0e8a16 \
+            -f description="词库 Issue 已处理，避免定时重复解析" > /dev/null 2>&1 || true
+
+          for N in $NUMS; do
+            echo "===== 处理 Issue #$N ====="
+            gh api "repos/${{ github.repository }}/issues/$N" --jq '.body // ""' > issue_body.txt
+            echo "正文长度：$(wc -c < issue_body.txt) 字节"
+            ISSUE_BODY="$(cat issue_body.txt)" ISSUE_NUMBER="$N" node tools/issue_to_contrib.js
+
+            FILE="dict/contribs/contrib-issue-$N.json"
+            COUNT=0
+            [ -f "$FILE" ] && COUNT=$(node -e "console.log(Object.keys(require('./$FILE').hits).length)")
+            PUSHED=false
+            if [ "$COUNT" != "0" ]; then
+              git add "$FILE"
+              if git diff --cached --quiet; then
+                echo "::notice::Issue #$N 贡献文件已存在且内容相同，无需提交"
+              else
+                git commit -m "词库贡献：接收 Issue #$N 的 $COUNT 条词条" \
+                           -m "维护者打标确认后由工作流自动解析生成，待「词库贡献合并」进入正式词库。"
+                PUSHED=true
+                ANY_PUSHED=true
+              fi
+            fi
+
+            # 标记已处理，避免下一次定时重复解析
+            gh api "repos/${{ github.repository }}/issues/$N/labels" \
+              -f 'labels[]=dict-processed' > /dev/null 2>&1 || echo "::warning::Issue #$N 标记失败"
+
+            if [ "$SHOULD_COMMENT" = "true" ] || [ "$PUSHED" = "true" ]; then
+              if [ "$COUNT" = "0" ]; then
+                BODY="未从本 Issue 中解析到可用词条。请确认每行格式为 原文 → 译文（一行一条），也可由维护者手动处理。"
+              elif [ "$PUSHED" = "true" ]; then
+                BODY="已接收 $COUNT 条词条，已写入 dict/contribs/，等待「词库贡献合并」进入正式词库。感谢贡献！"
+              else
+                BODY="已接收 $COUNT 条词条，贡献文件已存在，无需重复提交。感谢贡献！"
+              fi
+              gh api "repos/${{ github.repository }}/issues/$N/comments" -f body="$BODY" > /dev/null
+            fi
+          done
+
+          if [ "$ANY_PUSHED" = "true" ]; then
+            git push origin HEAD:main
+          else
+            echo "::notice::本次没有新的贡献文件需要推送"
+          fi

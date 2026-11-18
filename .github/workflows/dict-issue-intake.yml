@@ -81,6 +81,10 @@ jobs:
           [ "$EVENT" = "workflow_dispatch" ] && SHOULD_COMMENT=true
           ANY_PUSHED=false
 
+          # git commit 需要身份，否则报 fatal: empty ident name not allowed
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           gh api "repos/${{ github.repository }}/labels" \
             -f name=dict-processed -f color=0e8a16 \
             -f description="词库 Issue 已处理，避免定时重复解析" > /dev/null 2>&1 || true
